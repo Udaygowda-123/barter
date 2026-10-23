@@ -14,7 +14,7 @@ import { ErrorState } from '@/components/ui/states';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { clockTime, formatINR } from '@/lib/format';
-import { prepareImage } from '@/lib/image';
+import { IMAGE_ACCEPT, prepareImage } from '@/lib/image';
 import { useToast } from '@/lib/toast';
 import type { ConversationSummary, ImageDto, Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -52,7 +52,7 @@ export default function Thread() {
   }
   async function pickFile(f?: File) {
     if (!f) return; const fd = new FormData(); fd.append('file', await prepareImage(f));
-    try { setAttach([...attach, await api<ImageDto>('/media/images', { method: 'POST', body: fd })].slice(-4)); } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Could not attach image'); }
+    try { setAttach([...attach, await api<ImageDto>('/media/images', { method: 'POST', body: fd })].slice(-4)); } catch (e) { toast.error(e instanceof ApiError || e instanceof Error ? e.message : 'Could not attach image'); }
     if (file.current) file.current.value = '';
   }
   async function block() {
@@ -83,7 +83,7 @@ export default function Thread() {
         {attach.length > 0 && <ul className="mb-2 flex gap-2">{attach.map((a) => <li key={a.id} className="relative"><img src={a.thumbUrl ?? a.url} alt="Attachment preview" className="size-14 rounded-xl object-cover" /><button type="button" onClick={() => setAttach(attach.filter((x) => x.id !== a.id))} aria-label="Remove attachment" className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-ink text-paper"><X className="size-3" aria-hidden /></button></li>)}</ul>}
         <div className="flex items-end gap-2">
           <button type="button" onClick={() => file.current?.click()} aria-label="Attach an image" className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-ink/5"><ImagePlus className="size-5" aria-hidden /></button>
-          <input ref={file} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label="Attach image file" onChange={(e) => pickFile(e.target.files?.[0])} />
+          <input ref={file} type="file" accept={IMAGE_ACCEPT} className="sr-only" aria-label="Attach image file" onChange={(e) => pickFile(e.target.files?.[0])} />
           <label className="flex-1"><span className="sr-only">Message</span><textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} rows={1} maxLength={2000} placeholder="Write a message…" className="max-h-32 min-h-11 w-full resize-none rounded-3xl border border-line bg-paper px-4 py-2.5 text-base md:text-[15px] focus-visible:border-ink" /></label>
           <Button type="submit" size="icon" aria-label="Send message" disabled={!text.trim()} loading={sending}>{!sending && <Send className="size-5" aria-hidden />}</Button>
         </div>

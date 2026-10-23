@@ -8,7 +8,7 @@ import { toId } from './util';
 
 /** Vercel functions accept ≤ 4.5 MB request bodies, so the browser compresses before upload; this is the server-side cap. */
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
-const ALLOWED = new Set(['jpeg', 'png', 'webp']);
+const ALLOWED = new Set(['jpeg', 'png', 'webp', 'gif', 'avif', 'heif', 'tiff', 'bmp']); // SVG is deliberately not accepted
 const provider = new LocalSharpProvider();
 
 export type ImageLean = Pick<ImageDoc, '_id' | 'listingId' | 'originalKey' | 'enhancedKey' | 'thumbKey' | 'useEnhanced' | 'isCover' | 'position' | 'altText' | 'width' | 'height' | 'processingStatus' | 'processingError'> & { aiEdited?: boolean };
@@ -27,8 +27,8 @@ export async function uploadImage(userId: string, file: Buffer) {
   if (!file?.length) throw bad('NO_FILE', 'Choose an image to upload');
   if (file.length > MAX_UPLOAD_BYTES) throw new HttpError(413, 'FILE_TOO_LARGE', 'Images must be under 4 MB');
   let meta: Metadata;
-  try { meta = await sharp(file, { limitInputPixels: 50_000_000 }).metadata(); } catch { throw bad('INVALID_IMAGE', 'That file is not a readable image'); }
-  if (!meta.format || !ALLOWED.has(meta.format)) throw bad('UNSUPPORTED_IMAGE_TYPE', 'Use a JPEG, PNG or WebP image');
+  try { meta = await sharp(file, { limitInputPixels: 50_000_000 }).metadata(); } catch { throw bad('INVALID_IMAGE', 'That file is not a readable image. HEIC photos are converted in your browser — if you see this, export the photo as JPEG.'); }
+  if (!meta.format || !ALLOWED.has(meta.format)) throw bad('UNSUPPORTED_IMAGE_TYPE', meta.format === 'heif' || !meta.format ? 'This photo format is not supported. Export it as JPEG or PNG and try again.' : 'This image type is not supported. Use JPEG, PNG, HEIC or WebP.');
   if ((await Image.countDocuments({ uploaderId: toId(userId), listingId: null })) >= 30) throw bad('TOO_MANY_PENDING', 'Attach or remove unused photos first');
 
   const original = await sharp(file).rotate().resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true }).webp({ quality: 90 }).toBuffer({ resolveWithObject: true });

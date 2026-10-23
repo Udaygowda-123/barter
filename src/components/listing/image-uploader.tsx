@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, ImagePlus, Loader2, Sparkles, Star, Trash2 } from '
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { api, ApiError } from '@/lib/api';
-import { prepareImage } from '@/lib/image';
+import { IMAGE_ACCEPT, prepareImage } from '@/lib/image';
 import { useToast } from '@/lib/toast';
 import type { ImageDto } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -41,7 +41,7 @@ export function ImageUploader({ images, coverId, onChange, max = 8 }: Props) {
         const fd = new FormData(); fd.append('file', await prepareImage(f));
         const img = await api<ImageDto>('/media/images', { method: 'POST', body: fd });
         list = [...list, img]; cover ??= img.id; onChange(list, cover);
-      } catch (e) { toast.error(e instanceof ApiError ? `${f.name}: ${e.message}` : `Could not upload ${f.name}`); }
+      } catch (e) { toast.error(e instanceof ApiError ? `${f.name}: ${e.message}` : e instanceof Error ? `${f.name}: ${e.message}` : `Could not upload ${f.name}`); }
       finally { setUploading((n) => n - 1); }
     }
     if (input.current) input.current.value = '';
@@ -89,11 +89,11 @@ export function ImageUploader({ images, coverId, onChange, max = 8 }: Props) {
         ))}
         {images.length < max && (
           <li className={images.length === 0 ? 'col-span-2 sm:col-span-1' : ''}><button type="button" onClick={() => input.current?.click()} className="flex aspect-[16/9] w-full sm:aspect-[4/5] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line bg-surface/60 text-sm font-semibold text-muted transition-colors hover:border-ink hover:text-ink">
-            {uploading > 0 ? <Loader2 className="size-7 animate-spin" aria-hidden /> : <ImagePlus className="size-7" aria-hidden />}{uploading > 0 ? 'Uploading…' : 'Add photos'}<span className="text-xs font-normal">JPEG, PNG or WebP</span>
+            {uploading > 0 ? <Loader2 className="size-7 animate-spin" aria-hidden /> : <ImagePlus className="size-7" aria-hidden />}{uploading > 0 ? 'Uploading…' : 'Add photos'}<span className="text-xs font-normal">Any photo — JPEG, PNG, HEIC, WebP…</span>
           </button></li>
         )}
       </ul>
-      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" aria-label="Upload photos" onChange={(e) => addFiles(e.target.files)} />
+      <input ref={input} type="file" accept={IMAGE_ACCEPT} multiple className="sr-only" aria-label="Upload photos" onChange={(e) => addFiles(e.target.files)} />
       <p className="mt-3 flex items-start gap-2 text-xs text-muted"><Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden /><span>Enhancement balances light and colour and frames your photo — it never hides scratches, damage or serial numbers. We keep your original on file, and enhanced photos are labelled &quot;AI-enhanced&quot; to buyers.</span></p>
     </div>
   );

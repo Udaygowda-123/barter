@@ -48,6 +48,7 @@ Gmail limits you to ~500 emails/day, which is fine for a prototype. For a real l
 ## Notes
 - Offer accept/deal changes use MongoDB transactions (Atlas supports them). A unique `ListingLock` index makes it impossible for two active deals to hold one item.
 - Chat/notifications update by polling (every 4–10 s) — serverless has no WebSockets.
+- Photos: any common image works (HEIC/HEIF from iPhones, JPEG, PNG, WebP, GIF, AVIF, BMP, TIFF). HEIC is converted to JPEG in the browser (decoder loads only when needed), everything is resized and re-encoded to WebP on the server (EXIF/GPS stripped). SVG is intentionally rejected.
 - Photos are enhanced (light/colour/framing, never retouching defects) on upload; originals are kept.
 - Offers expire lazily when read; no cron needed.
 - Cash is only ever a proposal — SWAPD doesn't move money.

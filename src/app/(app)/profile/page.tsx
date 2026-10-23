@@ -13,7 +13,7 @@ import { Chip } from '@/components/ui/primitives';
 import { Spinner } from '@/components/ui/states';
 import { api, ApiError } from '@/lib/api';
 import { useRequireAuth } from '@/lib/auth';
-import { prepareImage } from '@/lib/image';
+import { IMAGE_ACCEPT, prepareImage } from '@/lib/image';
 import { useToast } from '@/lib/toast';
 import type { ImageDto, PublicProfile } from '@/lib/types';
 
@@ -40,7 +40,7 @@ export default function MyProfile() {
   }
   async function avatar(file?: File) {
     if (!file) return; const fd = new FormData(); fd.append('file', await prepareImage(file));
-    try { const img = await api<ImageDto>('/media/images', { method: 'POST', body: fd }); setF((s) => ({ ...s, avatarUrl: img.thumbUrl ?? img.url })); } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Upload failed'); }
+    try { const img = await api<ImageDto>('/media/images', { method: 'POST', body: fd }); setF((s) => ({ ...s, avatarUrl: img.thumbUrl ?? img.url })); } catch (e) { toast.error(e instanceof ApiError || e instanceof Error ? e.message : 'Upload failed'); }
   }
 
   return (
@@ -60,7 +60,7 @@ export default function MyProfile() {
       <Dialog open={edit} onOpenChange={setEdit} title="Edit profile">
         <div className="space-y-4">
           <div className="flex items-center gap-4">{f.avatarUrl ? <img src={f.avatarUrl} alt="Your avatar" className="size-16 rounded-full object-cover" /> : <span className="flex size-16 items-center justify-center rounded-full bg-lavender text-2xl font-bold text-lavender-ink" aria-hidden>{f.displayName[0]}</span>}
-            <label className="cursor-pointer rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold hover:border-ink has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-ink">Change photo<input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => avatar(e.target.files?.[0])} /></label>{f.avatarUrl && <Button variant="ghost" size="sm" onClick={() => setF({ ...f, avatarUrl: '' })}>Remove</Button>}</div>
+            <label className="cursor-pointer rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold hover:border-ink has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-ink">Change photo<input type="file" accept={IMAGE_ACCEPT} className="sr-only" onChange={(e) => avatar(e.target.files?.[0])} /></label>{f.avatarUrl && <Button variant="ghost" size="sm" onClick={() => setF({ ...f, avatarUrl: '' })}>Remove</Button>}</div>
           <Field label="Display name">{(p) => <Input {...p} value={f.displayName} maxLength={40} onChange={(e) => setF({ ...f, displayName: e.target.value })} />}</Field>
           <Field label="Bio">{(p) => <Textarea {...p} value={f.bio} maxLength={300} onChange={(e) => setF({ ...f, bio: e.target.value })} className="min-h-20" />}</Field>
           <div className="grid grid-cols-2 gap-3"><Field label="City">{(p) => <Input {...p} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} />}</Field><Field label="State / region">{(p) => <Input {...p} value={f.region} onChange={(e) => setF({ ...f, region: e.target.value })} />}</Field></div>
