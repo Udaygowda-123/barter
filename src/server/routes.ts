@@ -49,7 +49,7 @@ addPublic('POST', '/auth/reset-password', async (c) => { await rateLimit(`auth:$
 add('GET', '/users/me', 'user', (c) => users.me(c.user.id));
 add('PATCH', '/users/me', 'user', async (c) => users.updateMe(c.user.id, parse(updateProfileSchema, await c.json())));
 addPublic('GET', '/users/:id/reviews', (c) => users.userReviews(c.params.id));
-addPublic('GET', '/users/:id', (c) => users.publicProfile(c.params.id));
+addPublic('GET', '/users/:id', (c) => users.publicProfile(c.params.id), { cache: { sMaxAge: 60, swr: 300 } });
 add('POST', '/users/:id/block', 'user', (c) => users.block(c.user.id, c.params.id));
 add('DELETE', '/users/:id/block', 'user', (c) => users.unblock(c.user.id, c.params.id));
 
@@ -65,16 +65,16 @@ add('PATCH', '/media/images/:id', 'user', async (c) => media.chooseImage(c.user.
 add('DELETE', '/media/images/:id', 'user', async (c) => { await media.discardImage(c.user.id, c.params.id); return noContent(); });
 
 // ───────── listings & discovery ─────────
-addPublic('GET', '/listings', (c) => listings.listListings(parse(listingQuerySchema, c.query), c.user?.id));
+addPublic('GET', '/listings', (c) => listings.listListings(parse(listingQuerySchema, c.query), c.user?.id), { cache: { sMaxAge: 30, swr: 300 } });
 add('POST', '/listings', 'user', async (c) => reply(await listings.createListing(c.user, parse(createListingSchema, await c.json())), 201));
-addPublic('GET', '/listings/:id', (c) => listings.getListing(c.params.id, c.user?.id));
+addPublic('GET', '/listings/:id', (c) => listings.getListing(c.params.id, c.user?.id), { cache: { sMaxAge: 30, swr: 300 } });
 add('PATCH', '/listings/:id', 'user', async (c) => listings.updateListing(c.params.id, c.user, parse(updateListingSchema, await c.json())));
 add('DELETE', '/listings/:id', 'user', async (c) => { await listings.removeListing(c.params.id, c.user); return noContent(); });
 add('POST', '/listings/:id/favorite', 'user', (c) => listings.setFavorite(c.user.id, c.params.id, true));
 add('DELETE', '/listings/:id/favorite', 'user', (c) => listings.setFavorite(c.user.id, c.params.id, false));
 add('POST', '/listings/:id/dismiss', 'user', (c) => listings.dismissListing(c.user.id, c.params.id));
 add('GET', '/favorites', 'user', (c) => listings.favorites(c.user.id));
-addPublic('GET', '/discover', (c) => discover(parse(listingQuerySchema, c.query), c.user?.id));
+addPublic('GET', '/discover', (c) => discover(parse(listingQuerySchema, c.query), c.user?.id), { cache: { sMaxAge: 30, swr: 300 } });
 
 // ───────── offers ─────────
 add('GET', '/offers', 'user', (c) => offers.listOffers(c.user.id, parse(offersQuery, c.query)));
@@ -87,6 +87,7 @@ add('POST', '/offers/:id/withdraw', 'user', async (c) => offers.withdrawOffer(c.
 
 // ───────── chat (polling-based: clients re-fetch; `after` returns only new messages) ─────────
 add('GET', '/conversations', 'user', (c) => chat.listConversations(c.user.id));
+add('GET', '/pulse', 'user', (c) => chat.pulse(c.user.id));
 add('GET', '/conversations/:id/messages', 'user', (c) => chat.getMessages(c.user.id, c.params.id, { after: c.query.after, before: c.query.before, limit: c.query.limit ? Number(c.query.limit) : undefined }));
 add('POST', '/conversations/:id/messages', 'user', async (c) => { await rateLimit(`msg:${c.user.id}`, 60, 60); return reply(await chat.sendMessage(c.user.id, c.params.id, parse(sendMessageSchema, await c.json())), 201); });
 add('POST', '/conversations/:id/read', 'user', (c) => chat.markRead(c.user.id, c.params.id));

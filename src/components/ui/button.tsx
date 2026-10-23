@@ -16,7 +16,7 @@ export const buttonStyles = cva(
         ghost: 'text-ink hover:bg-ink/5',
         danger: 'bg-danger text-white hover:bg-[#8f1c12]',
       },
-      size: { sm: 'h-9 px-4 text-sm', md: 'h-11 px-5 text-sm', lg: 'h-14 px-8 text-base', icon: 'size-11' },
+      size: { sm: 'h-10 px-4 text-sm md:h-9', md: 'h-11 px-5 text-sm', lg: 'h-14 px-6 text-base sm:px-8', icon: 'size-11' },
     },
     defaultVariants: { variant: 'primary', size: 'md' },
   },

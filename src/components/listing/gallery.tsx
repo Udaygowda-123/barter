@@ -49,7 +49,7 @@ export function Gallery({ images, title, className }: { images: ImageDto[]; titl
   const [a, b, c] = images; const n = images.length;
   const Tile = ({ img, i, cls }: { img: ImageDto; i: number; cls?: string }) => (
     <button type="button" onClick={() => show(i)} aria-label={`Open photo ${i + 1} of ${n} full screen`} className={cn('group relative overflow-hidden bg-ink/5', cls)}>
-      <img src={img.url} alt={img.altText ?? `${title} photo ${i + 1}`} loading={i ? 'lazy' : 'eager'} className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
+      <img src={img.url} alt={img.altText ?? `${title} photo ${i + 1}`} width={1200} height={1500} decoding="async" fetchPriority={i ? 'auto' : 'high'} loading={i ? 'lazy' : 'eager'} className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
       {img.aiEdited && i === 0 && <AiTag />}
     </button>
   );
@@ -65,7 +65,7 @@ export function Gallery({ images, title, className }: { images: ImageDto[]; titl
       {/* Mobile: full-width swipe carousel with dots */}
       <div className="relative -mx-4 md:hidden" role="region" aria-roledescription="carousel" aria-label={`Photos of ${title}`}>
         <div ref={mobile} onScroll={(e) => setMi(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))} className="no-scrollbar flex aspect-[4/5] snap-x snap-mandatory overflow-x-auto bg-ink/5">
-          {images.map((img, i) => <button key={img.id} type="button" onClick={() => show(i)} aria-label={`Open photo ${i + 1} of ${n} full screen`} className="relative size-full shrink-0 snap-center"><img src={img.url} alt={img.altText ?? `${title} photo ${i + 1}`} loading={i ? 'lazy' : 'eager'} className="size-full object-cover" />{img.aiEdited && i === 0 && <AiTag />}</button>)}
+          {images.map((img, i) => <button key={img.id} type="button" onClick={() => show(i)} aria-label={`Open photo ${i + 1} of ${n} full screen`} className="relative size-full shrink-0 snap-center"><img src={img.url} alt={img.altText ?? `${title} photo ${i + 1}`} width={1200} height={1500} decoding="async" fetchPriority={i ? 'auto' : 'high'} loading={i ? 'lazy' : 'eager'} className="size-full object-cover" />{img.aiEdited && i === 0 && <AiTag />}</button>)}
         </div>
         {n > 1 && <>
           <span className="absolute right-4 top-4 rounded-full bg-ink/70 px-3 py-1 text-xs font-bold text-paper">{mi + 1}/{n}</span>

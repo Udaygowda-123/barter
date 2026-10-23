@@ -31,7 +31,7 @@ function LoginForm() {
         <Field label="Password" error={errors.password?.message}>{(p) => <Input type="password" autoComplete="current-password" {...p} {...register('password')} />}</Field>
         {formError && <p role="alert" className="rounded-2xl bg-danger-soft px-4 py-3 text-sm font-medium text-danger">{formError}</p>}
         <Button type="submit" size="lg" className="w-full" loading={isSubmitting}>Sign in</Button>
-        <div className="flex justify-between text-sm"><Link href="/forgot-password" className="font-semibold underline">Forgot password?</Link><Link href="/register" className="font-semibold underline">Create account</Link></div>
+        <div className="flex justify-between text-sm"><Link href="/forgot-password" className="inline-block py-2 font-semibold underline">Forgot password?</Link><Link href="/register" className="inline-block py-2 font-semibold underline">Create account</Link></div>
       </form>
       <p className="mt-8 rounded-2xl bg-lavender/60 p-4 text-sm text-lavender-ink">Trying the demo? Seed accounts like <b>maya@swapd.demo</b> use the password <b>swapd-demo-pass</b> (local development only).</p>
     </>

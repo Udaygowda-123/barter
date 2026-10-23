@@ -6,24 +6,26 @@ import { toId } from './util';
 
 export type Access = 'public' | 'user' | 'staff' | 'admin';
 export interface Ctx { req: Request; params: Record<string, string>; query: Record<string, string>; user: AuthUser | null; json(): Promise<unknown>; form(): Promise<FormData> }
+export interface CacheOpt { sMaxAge: number; swr: number }
 export interface Route { method: string; path: string; access: Access; idempotent?: boolean; handler: (c: Ctx & { user: AuthUser }) => Promise<unknown>; handlerPublic?: never }
-interface Compiled extends Omit<Route, 'handler'> { re: RegExp; keys: string[]; handler: (c: Ctx) => Promise<unknown> }
+interface Compiled extends Omit<Route, 'handler'> {
+  cache?: CacheOpt; re: RegExp; keys: string[]; handler: (c: Ctx) => Promise<unknown> }
 
 const routes: Compiled[] = [];
-export function add(method: string, path: string, access: Access, handler: (c: Ctx & { user: AuthUser }) => Promise<unknown>, opts: { idempotent?: boolean } = {}) {
+export function add(method: string, path: string, access: Access, handler: (c: Ctx & { user: AuthUser }) => Promise<unknown>, opts: { idempotent?: boolean; cache?: CacheOpt } = {}) {
   const keys: string[] = [];
   const re = new RegExp(`^${path.replace(/:([a-zA-Z]+)/g, (_, k) => { keys.push(k); return '([^/]+)'; }).replace(/\*$/, '(.*)')}$`);
-  routes.push({ method, path, access, re, keys, idempotent: opts.idempotent, handler: handler as Compiled['handler'] });
+  routes.push({ method, path, access, re, keys, idempotent: opts.idempotent, cache: opts.cache, handler: handler as Compiled['handler'] });
 }
 /** Public routes receive `user` when a valid token is sent, else null. */
-export const addPublic = (method: string, path: string, handler: (c: Ctx) => Promise<unknown>, opts: { idempotent?: boolean } = {}) => add(method, path, 'public', handler as never, opts);
+export const addPublic = (method: string, path: string, handler: (c: Ctx) => Promise<unknown>, opts: { idempotent?: boolean; cache?: CacheOpt } = {}) => add(method, path, 'public', handler as never, opts);
 
 const CODES: Record<number, string> = { 400: 'BAD_REQUEST', 401: 'UNAUTHENTICATED', 403: 'FORBIDDEN', 404: 'NOT_FOUND', 409: 'CONFLICT', 429: 'RATE_LIMITED' };
 
 function toResponse(r: unknown): Response {
   if (r instanceof Response) return r;
   const reply = r instanceof Reply ? r : new Reply(r === undefined ? {} : r);
-  const headers = new Headers({ 'Cache-Control': 'no-store', ...reply.headers });
+  const headers = new Headers({ 'Cache-Control': 'private, no-store', ...reply.headers });
   for (const c of reply.cookies) headers.append('Set-Cookie', c);
   if (reply.status === 204 || reply.body === null) return new Response(null, { status: reply.status === 200 ? 204 : reply.status, headers });
   headers.set('Content-Type', 'application/json');
@@ -73,6 +75,11 @@ export async function handle(req: Request): Promise<Response> {
     }
     const result = await route.handler(ctx);
     const res = toResponse(result);
+    // Anonymous, explicitly-public reads (client adds ?public=1 when it has no token) are CDN-cacheable; everything else is private.
+    if (route.cache && req.method === 'GET' && !req.headers.get('authorization') && ctx.query.public === '1' && res.status === 200) {
+      res.headers.set('Cache-Control', `public, s-maxage=${route.cache.sMaxAge}, stale-while-revalidate=${route.cache.swr}`);
+    }
+    res.headers.append('Vary', 'Authorization');
     if (idemKey && res.status < 300 && res.status !== 204) {
       const body = await res.clone().json().catch(() => ({}));
       await IdempotencyKey.create({ ...idemKey, statusCode: res.status, response: body }).catch(() => undefined);

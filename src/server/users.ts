@@ -8,8 +8,8 @@ import { userBrief } from './views';
 const round1 = (n: number) => Math.round(n * 10) / 10; // ≈11 km: privacy-safe coordinates
 
 export function meDto(u: UserDoc) {
-  const { _id, passwordHash: _p, ...rest } = u as UserDoc & Record<string, unknown>;
-  return { ...rest, id: sid(_id), preference: { interests: [], wantedCategories: [], locationConsent: false, maxDistanceKm: null, onboardedAt: null, ...u.preference } };
+  const { _id, passwordHash: _p, __v: _v, ...rest } = u as UserDoc & Record<string, unknown>;
+  return { ...rest, id: sid(_id), preference: Object.assign({ interests: [], wantedCategories: [], locationConsent: false, maxDistanceKm: null, onboardedAt: null }, u.preference) };
 }
 export async function me(id: string) { const u = await User.findById(toId(id)).lean(); if (!u) throw notFound(); return meDto(u); }
 

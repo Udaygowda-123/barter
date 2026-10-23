@@ -33,8 +33,8 @@ function describe(n: NotificationDto): { text: string; href: string } {
 export default function Notifications() {
   const { status } = useRequireAuth(); const qc = useQueryClient();
   const q = useQuery({ queryKey: ['notifications'], queryFn: () => api<Page<NotificationDto> & { unreadCount: number }>('/notifications'), enabled: status === 'authed' });
-  const readOne = useMutation({ mutationFn: (id: string) => api(`/notifications/${id}/read`, { method: 'POST' }), onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }) });
-  const readAll = useMutation({ mutationFn: () => api('/notifications/read-all', { method: 'POST' }), onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }) });
+  const readOne = useMutation({ mutationFn: (id: string) => api(`/notifications/${id}/read`, { method: 'POST' }), onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); qc.invalidateQueries({ queryKey: ['pulse'] }); } });
+  const readAll = useMutation({ mutationFn: () => api('/notifications/read-all', { method: 'POST' }), onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); qc.invalidateQueries({ queryKey: ['pulse'] }); } });
   return (
     <div className="mx-auto max-w-2xl"><div className="flex items-end justify-between gap-3"><div><h1 className="text-3xl font-black tracking-tight md:text-5xl">Notifications</h1><p className="mt-1 text-muted">{q.data ? `${q.data.unreadCount} unread` : ' '}</p></div>{!!q.data?.unreadCount && <Button variant="outline" size="sm" onClick={() => readAll.mutate()} loading={readAll.isPending}><CheckCheck className="size-4" aria-hidden />Mark all read</Button>}</div>
       <div className="mt-6 space-y-2">{q.isLoading || status !== 'authed' ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-16" />) : q.isError ? <ErrorState onRetry={() => q.refetch()} /> : q.data!.items.length === 0 ? <EmptyState icon={<Bell className="size-7" aria-hidden />} title="You're all caught up" body="Offers, messages and deal updates will show up here." /> :

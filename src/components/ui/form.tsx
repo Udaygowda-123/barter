@@ -1,7 +1,7 @@
 import { forwardRef, useId } from 'react';
 import { cn } from '@/lib/utils';
 
-const base = 'w-full rounded-[var(--radius-control)] border bg-surface px-4 text-[15px] text-ink placeholder:text-muted/70 transition-colors focus-visible:border-ink disabled:opacity-60';
+const base = 'w-full rounded-[var(--radius-control)] border bg-surface px-4 text-base text-ink md:text-[15px] placeholder:text-muted/70 transition-colors focus-visible:border-ink disabled:opacity-60';
 
 export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }>(({ className, invalid, ...p }, ref) => (
   <input ref={ref} aria-invalid={invalid || undefined} className={cn(base, 'h-12', invalid ? 'border-danger' : 'border-line', className)} {...p} />

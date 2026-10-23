@@ -9,6 +9,7 @@ import { Image, Listing, ProhibitedTerm, User } from '../src/server/models';
 const PASSWORD = 'swapd-demo-pass';
 const credits: Record<string, { file: string }[]> = JSON.parse(readFileSync(path.resolve(__dirname, 'demo-photos/credits.json'), 'utf8'));
 const photo = (f: string) => `/demo/${f.replace('.jpg', '.webp')}`;
+const thumb = (f: string) => `/demo/thumb/${f.replace('.jpg', '.webp')}`; // 480×600 for feed cards
 
 const USERS = [
   { email: 'maya@swapd.demo', displayName: 'Maya (demo)', city: 'Pune', region: 'Maharashtra', lat: 18.5, lng: 73.9 },
@@ -38,7 +39,7 @@ async function main() {
   const passwordHash = await hash(PASSWORD);
   const upsertUser = (email: string, data: Record<string, unknown>) => User.findOneAndUpdate({ email }, { $setOnInsert: { email, passwordHash, bio: 'Demo account — seed data, not a real person.', ...data } }, { upsert: true, returnDocument: 'after' });
   await upsertUser('admin@swapd.demo', { displayName: 'SWAPD Admin (demo)', role: 'ADMIN', bio: 'Demo admin account — seed data.', preference: { onboardedAt: new Date() } });
-  const users = [];
+  const users: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
   for (const u of USERS) users.push(await upsertUser(u.email, { displayName: u.displayName, locationCity: u.city, locationRegion: u.region, locationLat: u.lat, locationLng: u.lng, preference: { locationConsent: true, onboardedAt: new Date() } }));
 
   let created = 0;
@@ -53,7 +54,7 @@ async function main() {
     }
     await Image.deleteMany({ listingId: l._id });
     const files = credits[it.title]?.map((c) => c.file) ?? [];
-    await Image.insertMany(files.map((f, n) => ({ listingId: l!._id, uploaderId: owner._id, originalKey: photo(f), thumbKey: photo(f), enhancedKey: null, isCover: n === 0, position: n, processingStatus: 'READY', altText: `${it.title} — demo photo ${n + 1}`, width: 1000, height: 1250 })));
+    await Image.insertMany(files.map((f, n) => ({ listingId: l!._id, uploaderId: owner._id, originalKey: photo(f), thumbKey: thumb(f), enhancedKey: null, isCover: n === 0, position: n, processingStatus: 'READY', altText: `${it.title} — demo photo ${n + 1}`, width: 1000, height: 1250 })));
   }
   for (const term of ['firearm', 'ammunition', 'counterfeit', 'stolen', 'illegal drugs', 'fake id']) await ProhibitedTerm.updateOne({ term }, { $setOnInsert: { term, reason: 'Default prohibited category' } }, { upsert: true });
   console.log(`Seeded ${created} new demo listings (${ITEMS.length} total). Demo logins: maya@swapd.demo … admin@swapd.demo / ${PASSWORD}`);

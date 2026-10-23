@@ -5,6 +5,7 @@ import { signAccess } from './auth-core';
 import { env } from './config';
 import { HttpError, conflict, forbidden } from './http';
 import { PasswordResetToken, RefreshToken, User } from './models';
+import { meDto } from './users';
 import { toId } from './util';
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -24,7 +25,7 @@ export async function register(input: RegisterInput) {
   let user;
   try { user = await User.create({ email: input.email, displayName: input.displayName, passwordHash: await hash(input.password, ARGON) }); }
   catch (e) { if ((e as { code?: number }).code === 11000) throw conflict('EMAIL_TAKEN', 'An account with this email already exists'); throw e; }
-  return { user: String(user._id), ...(await issueTokens(String(user._id))) };
+  return { user: String(user._id), me: meDto(user.toObject()), ...(await issueTokens(String(user._id))) };
 }
 
 export async function login(input: LoginInput) {
@@ -32,7 +33,7 @@ export async function login(input: LoginInput) {
   const ok = user ? await verify(user.passwordHash, input.password) : (await verify(await DUMMY, input.password), false);
   if (!user || !ok) throw unauth('INVALID_CREDENTIALS', 'Email or password is incorrect');
   if (user.status === 'SUSPENDED') throw forbidden('ACCOUNT_SUSPENDED', 'This account has been suspended');
-  return { user: String(user._id), ...(await issueTokens(String(user._id))) };
+  return { user: String(user._id), me: meDto(user.toObject()), ...(await issueTokens(String(user._id))) };
 }
 
 export async function refresh(raw: string) {
@@ -43,12 +44,12 @@ export async function refresh(raw: string) {
     throw unauth('REFRESH_REUSED', 'Please sign in again');
   }
   if (row.expiresAt < new Date()) throw unauth('REFRESH_EXPIRED', 'Please sign in again');
-  const user = await User.findById(row.userId).select('status').lean();
+  const user = await User.findById(row.userId).lean();
   if (!user || user.status === 'SUSPENDED') throw unauth('ACCOUNT_UNAVAILABLE', 'Please sign in again');
   // Atomic rotate: only one concurrent request can claim this token.
   const claimed = await RefreshToken.updateOne({ _id: row._id, revokedAt: null }, { $set: { revokedAt: new Date() } });
   if (!claimed.modifiedCount) throw unauth('REFRESH_REUSED', 'Please sign in again');
-  return { user: String(row.userId), ...(await issueTokens(String(row.userId), row.familyId)) };
+  return { user: String(row.userId), me: meDto(user), ...(await issueTokens(String(row.userId), row.familyId)) };
 }
 
 export const logout = async (raw?: string | null) => { if (raw) await RefreshToken.updateOne({ tokenHash: sha256(raw), revokedAt: null }, { $set: { revokedAt: new Date() } }); };

@@ -21,9 +21,18 @@ import { cn } from '@/lib/utils';
 
 export default function Thread() {
   const { id } = useParams<{ id: string }>(); const { user } = useAuth(); const qc = useQueryClient(); const toast = useToast(); const router = useRouter();
-  const msgs = useQuery({ queryKey: ['messages', id], queryFn: () => api<{ items: Message[]; hasMore: boolean }>(`/conversations/${id}/messages?limit=100`), retry: false, refetchInterval: 4000 });
-  const convs = qc.getQueryData<ConversationSummary[]>(['conversations']);
-  const conv = convs?.find((c) => c.id === id); const other = conv?.participants[0];
+  type Thread = { items: Message[]; hasMore: boolean };
+  /** First load fetches the thread; every poll after that asks only for messages newer than the last one we have. */
+  const msgs = useQuery({ queryKey: ['messages', id], retry: false, refetchInterval: 4000, queryFn: async (): Promise<Thread> => {
+    const prev = qc.getQueryData<Thread>(['messages', id]); const last = prev?.items.at(-1);
+    if (!prev || !last) return api<Thread>(`/conversations/${id}/messages?limit=100`);
+    const r = await api<Thread>(`/conversations/${id}/messages?after=${last.id}`);
+    if (!r.items.length) return prev;
+    const seen = new Set(prev.items.map((m) => m.id));
+    return { items: [...prev.items, ...r.items.filter((m) => !seen.has(m.id))].slice(-300), hasMore: prev.hasMore };
+  } });
+  const convs = useQuery({ queryKey: ['conversations'], queryFn: () => api<ConversationSummary[]>('/conversations'), refetchInterval: 15_000 });
+  const conv = convs.data?.find((c) => c.id === id); const other = conv?.participants[0];
   const [text, setText] = useState(''); const [sending, setSending] = useState(false); const [attach, setAttach] = useState<ImageDto[]>([]);
   const [report, setReport] = useState(false); const [blocking, setBlocking] = useState(false);
   const bottom = useRef<HTMLDivElement>(null); const file = useRef<HTMLInputElement>(null); const lastId = msgs.data?.items.at(-1)?.id;
@@ -31,7 +40,7 @@ export default function Thread() {
   useEffect(() => { bottom.current?.scrollIntoView({ block: 'end' }); }, [lastId]);
   useEffect(() => { // mark as read whenever the latest message changes while this thread is open
     if (!msgs.data) return;
-    api(`/conversations/${id}/read`, { method: 'POST' }).then(() => { qc.invalidateQueries({ queryKey: ['conversations'] }); qc.invalidateQueries({ queryKey: ['notifications'] }); }).catch(() => undefined);
+    api(`/conversations/${id}/read`, { method: 'POST' }).then(() => { qc.invalidateQueries({ queryKey: ['conversations'] }); qc.invalidateQueries({ queryKey: ['pulse'] }); }).catch(() => undefined);
   }, [id, lastId, msgs.data, qc]);
 
   async function send() {
@@ -75,7 +84,7 @@ export default function Thread() {
         <div className="flex items-end gap-2">
           <button type="button" onClick={() => file.current?.click()} aria-label="Attach an image" className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-ink/5"><ImagePlus className="size-5" aria-hidden /></button>
           <input ref={file} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label="Attach image file" onChange={(e) => pickFile(e.target.files?.[0])} />
-          <label className="flex-1"><span className="sr-only">Message</span><textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} rows={1} maxLength={2000} placeholder="Write a message…" className="max-h-32 min-h-11 w-full resize-none rounded-3xl border border-line bg-paper px-4 py-2.5 text-[15px] focus-visible:border-ink" /></label>
+          <label className="flex-1"><span className="sr-only">Message</span><textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} rows={1} maxLength={2000} placeholder="Write a message…" className="max-h-32 min-h-11 w-full resize-none rounded-3xl border border-line bg-paper px-4 py-2.5 text-base md:text-[15px] focus-visible:border-ink" /></label>
           <Button type="submit" size="icon" aria-label="Send message" disabled={!text.trim()} loading={sending}>{!sending && <Send className="size-5" aria-hidden />}</Button>
         </div>
         <p className="mt-1.5 px-2 text-[11px] text-muted">Chat doesn&apos;t change an offer or deal — use the offer page to accept terms.</p>

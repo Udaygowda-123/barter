@@ -2,7 +2,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api, refreshSession, setToken } from './api';
+import { api, consumeSessionUser, refreshSession, setToken } from './api';
 import type { Me } from './types';
 
 interface AuthCtx {
@@ -31,18 +31,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    (async () => { if (!hint.has()) { setStatus('anon'); return; } const t = await refreshSession(); if (t) await reload(); else { hint.clear(); setStatus('anon'); } })();
+    (async () => { if (!hint.has()) { setStatus('anon'); return; } const t = await refreshSession(); if (!t) { hint.clear(); setStatus('anon'); return; } const me = consumeSessionUser<Me>(); if (me) { setUser(me); setStatus('authed'); } else await reload(); })();
   }, [reload]);
 
   const value = useMemo<AuthCtx>(() => ({
     user, status, reload,
     async login(email, password) {
-      const r = await api<{ accessToken: string }>('/auth/login', { method: 'POST', body: { email, password } });
-      setToken(r.accessToken); hint.set(); const me = await api<Me>('/users/me'); setUser(me); setStatus('authed'); return me;
+      const r = await api<{ accessToken: string; me: Me }>('/auth/login', { method: 'POST', body: { email, password } });
+      setToken(r.accessToken); hint.set(); setUser(r.me); setStatus('authed'); return r.me;
     },
     async register(input) {
-      const r = await api<{ accessToken: string }>('/auth/register', { method: 'POST', body: input });
-      setToken(r.accessToken); hint.set(); const me = await api<Me>('/users/me'); setUser(me); setStatus('authed'); return me;
+      const r = await api<{ accessToken: string; me: Me }>('/auth/register', { method: 'POST', body: input });
+      setToken(r.accessToken); hint.set(); setUser(r.me); setStatus('authed'); return r.me;
     },
     async logout() {
       await api('/auth/logout', { method: 'POST', body: {} }).catch(() => undefined);

@@ -4,10 +4,11 @@ import { Providers } from '@/lib/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'http://localhost:3000'),
   title: { default: 'SWAPD — Your next favorite thing is already out there', template: '%s · SWAPD' },
   description: 'Swap what you have for what you actually want. Discover items, make structured offers, negotiate, and complete swaps with trust.',
 };
-export const viewport: Viewport = { themeColor: '#FAF8F5', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#FAF8F5', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

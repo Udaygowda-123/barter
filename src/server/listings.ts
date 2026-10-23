@@ -1,6 +1,6 @@
 import { CATEGORIES } from '@/shared/types';
 import type { createListingSchema, listingQuerySchema, updateListingSchema } from '@/shared/validation';
-import type { FilterQuery } from 'mongoose';
+import type { QueryFilter as FilterQuery } from 'mongoose';
 import type { z } from 'zod';
 import type { AuthUser } from './auth-core';
 import { withTx } from './db';
@@ -51,13 +51,14 @@ export async function getListing(id: string, viewerId?: string) {
   if (!l) throw notFound('LISTING_NOT_FOUND', 'Listing not found');
   const isOwner = viewerId === sid(l.ownerId);
   if (hidden.includes(l.status) && !isOwner && !(await isStaff(viewerId))) throw notFound('LISTING_NOT_FOUND', 'Listing not found');
-  if (viewerId && !isOwner && (await blockedIds(viewerId)).includes(sid(l.ownerId))) throw notFound('LISTING_NOT_FOUND', 'Listing not found');
-  const [favorited, related] = await Promise.all([
+  const [favorited, related, blockedList] = await Promise.all([
     viewerId ? Favorite.exists({ userId: toId(viewerId), listingId: l._id }) : null,
-    Listing.find({ _id: { $ne: l._id }, status: 'ACTIVE', category: l.category }).sort({ _id: -1 }).limit(6).lean(),
+    Listing.find({ _id: { $ne: l._id }, status: 'ACTIVE', category: l.category }).sort({ _id: -1 }).limit(4).lean(),
+    viewerId && !isOwner ? blockedIds(viewerId) : [],
   ]);
-  const [view] = await listingViews([l], viewerId, () => ({ favorited: !!favorited }));
-  return { ...view, related: await listingViews(related, viewerId) };
+  if ((blockedList as string[]).includes(sid(l.ownerId))) throw notFound('LISTING_NOT_FOUND', 'Listing not found');
+  const [[view], relatedViews] = await Promise.all([listingViews([l], viewerId, () => ({ favorited: !!favorited })), listingViews(related, viewerId, () => ({}), { lite: true })]);
+  return { ...view, related: relatedViews };
 }
 
 export async function listListings(q: z.infer<typeof listingQuerySchema>, viewerId?: string) {
@@ -76,7 +77,7 @@ export async function listListings(q: z.infer<typeof listingQuerySchema>, viewer
   };
   const rows = await Listing.find(filter).sort({ _id: -1 }).limit(q.limit + 1).lean();
   const items = rows.slice(0, q.limit);
-  return { items: await listingViews(items, viewerId), pageInfo: { nextCursor: rows.length > q.limit ? encodeCursor(items[items.length - 1]._id) : null } };
+  return { items: await listingViews(items, viewerId, () => ({}), { lite: true }), pageInfo: { nextCursor: rows.length > q.limit ? encodeCursor(items[items.length - 1]._id) : null } };
 }
 
 async function owned(id: string, user: AuthUser) {
@@ -122,7 +123,7 @@ export async function favorites(userId: string) {
   const ls = await Listing.find({ _id: { $in: favs.map((f) => f.listingId) }, status: { $ne: 'REMOVED' } }).lean();
   const order = new Map(favs.map((f, i) => [sid(f.listingId), i]));
   ls.sort((a, b) => order.get(sid(a._id))! - order.get(sid(b._id))!);
-  return listingViews(ls, userId, () => ({ favorited: true }));
+  return listingViews(ls, userId, () => ({ favorited: true }), { lite: true });
 }
 export async function dismissListing(userId: string, listingId: string) {
   const lid = toId(listingId);

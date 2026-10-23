@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "pnpm typecheck && next build",
     "start": "next start",
     "seed": "tsx scripts/seed.ts",
-    "reset-demo": "tsx scripts/reset-demo.ts"
+    "reset-demo": "tsx scripts/reset-demo.ts",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.server.json"
   },
   "dependencies": {
     "@hookform/resolvers": "^6.0.0",

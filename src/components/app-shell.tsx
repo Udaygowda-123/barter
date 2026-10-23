@@ -1,23 +1,18 @@
 'use client';
 import * as Menu from '@radix-ui/react-dropdown-menu';
-import { useQuery } from '@tanstack/react-query';
 import { Bell, Compass, Heart, Inbox, LogOut, MessageCircle, Plus, Shield, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/primitives';
-import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import type { ConversationSummary, NotificationDto, Page } from '@/lib/types';
+import { usePulse } from '@/lib/pulse';
 import { cn } from '@/lib/utils';
 import { Logo } from './logo';
 
 function useCounts() {
-  const { status } = useAuth();
-  const enabled = status === 'authed';
-  const convs = useQuery({ queryKey: ['conversations'], queryFn: () => api<ConversationSummary[]>('/conversations'), enabled, refetchInterval: 8000 });
-  const notes = useQuery({ queryKey: ['notifications'], queryFn: () => api<Page<NotificationDto> & { unreadCount: number }>('/notifications'), enabled, refetchInterval: 60_000 });
-  return { messages: (convs.data ?? []).reduce((n, c) => n + c.unreadCount, 0), notifications: notes.data?.unreadCount ?? 0 };
+  const { data } = usePulse();
+  return { messages: data?.unreadConversations ?? 0, notifications: data?.unreadNotifications ?? 0 };
 }
 
 const Count = ({ n }: { n: number }) => n > 0 ? <span className="absolute -right-1.5 -top-1 flex min-w-5 items-center justify-center rounded-full bg-coral px-1 text-[11px] font-bold leading-5 text-ink" aria-label={`${n} unread`}>{n > 99 ? '99+' : n}</span> : null;

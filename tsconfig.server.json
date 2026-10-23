@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "plugins": [],
+    "noImplicitAny": false
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/server/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/app/api/**/*.ts",
+    "scripts/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

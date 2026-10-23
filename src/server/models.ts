@@ -33,7 +33,7 @@ export const Listing = model('Listing', new Schema<any>({
   wantedText: { type: String, default: null }, wantedCategories: { type: [String], default: [] }, cashFlexibility: { type: String, default: 'NONE' }, exchangeMethods: { type: [String], default: [] },
   locationCity: { type: String, default: null }, locationRegion: { type: String, default: null }, locationLat: { type: Number, default: null }, locationLng: { type: Number, default: null },
   status: { type: String, default: 'ACTIVE' }, isSeedData: { type: Boolean, default: false }, createdAt: { type: Date, default: now }, updatedAt: { type: Date, default: now },
-}).index({ status: 1, category: 1, _id: -1 }).index({ ownerId: 1, status: 1 }));
+}).index({ status: 1, category: 1, _id: -1 }).index({ status: 1, _id: -1 }).index({ ownerId: 1, status: 1, _id: -1 }));
 
 export interface ImageDoc { _id: Id; listingId: Id | null; uploaderId: Id; originalKey: string; enhancedKey: string | null; thumbKey: string | null; useEnhanced: boolean; aiEdited: boolean; isCover: boolean; position: number; altText: string | null; width: number | null; height: number | null; processingStatus: 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED'; processingError: string | null; createdAt: Date }
 export const Image = model('Image', new Schema<any>({
@@ -55,9 +55,10 @@ export const Offer = model('Offer', new Schema<any>({
   conversationId: { type: oid, default: null }, dealId: { type: oid, default: null }, createdAt: { type: Date, default: now }, updatedAt: { type: Date, default: now }, revisions: [revision],
 }).index({ senderId: 1, targetListingId: 1 }, { unique: true, partialFilterExpression: { open: true } }).index({ status: 1, expiresAt: 1 }));
 
-export interface ConversationDoc { _id: Id; offerId: Id | null; listingId: Id | null; members: { userId: Id; lastReadAt: Date }[]; createdAt: Date; updatedAt: Date }
+export interface ConversationDoc { _id: Id; offerId: Id | null; listingId: Id | null; members: { userId: Id; lastReadAt: Date }[]; lastMessage: { senderId: Id | null; type: string; content: string; createdAt: Date } | null; createdAt: Date; updatedAt: Date }
 export const Conversation = model('Conversation', new Schema<any>({
   offerId: { type: oid, default: null }, listingId: { type: oid, default: null }, members: [new Schema<any>({ userId: oid, lastReadAt: { type: Date, default: now } }, { _id: false })],
+  lastMessage: { type: new Schema<any>({ senderId: { type: oid, default: null }, type: String, content: String, createdAt: Date }, { _id: false }), default: null },
   createdAt: { type: Date, default: now }, updatedAt: { type: Date, default: now },
 }).index({ 'members.userId': 1, updatedAt: -1 }));
 

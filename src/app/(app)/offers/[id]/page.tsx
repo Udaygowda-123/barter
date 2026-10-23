@@ -19,7 +19,7 @@ type Action = 'accept' | 'counter' | 'reject' | 'withdraw' | null;
 
 export default function OfferPage() {
   const { id } = useParams<{ id: string }>(); const { user, status } = useRequireAuth(); const qc = useQueryClient(); const toast = useToast();
-  const q = useQuery({ queryKey: ['offer', id], queryFn: () => api<Offer>(`/offers/${id}`), enabled: status === 'authed', retry: false, refetchInterval: 8000 });
+  const q = useQuery({ queryKey: ['offer', id], queryFn: () => api<Offer>(`/offers/${id}`), enabled: status === 'authed', retry: false, refetchOnWindowFocus: true });
   const [action, setAction] = useState<Action>(null); const idem = useRef(newIdempotencyKey()); const [counterError, setCounterError] = useState<string>();
   const o = q.data; const me = user?.id;
   const latest = o?.revisions[o.revisions.length - 1];

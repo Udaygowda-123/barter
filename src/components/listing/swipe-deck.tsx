@@ -1,6 +1,6 @@
 'use client';
 import { CONDITION_LABELS } from '@/shared/types';
-import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
+import { animate, motion, MotionConfig, useMotionValue, useTransform } from 'framer-motion';
 import { ArrowLeftRight, Eye, Heart, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -44,6 +44,7 @@ export function SwipeDeck({ items, onNeedMore, hasMore }: { items: Listing[]; on
   if (!current) return (<div className="py-20 text-center"><p className="text-xl font-bold">{hasMore ? 'Loading more…' : "You're all caught up"}</p><p className="mt-1 text-muted">{hasMore ? '' : 'Switch to grid view or adjust your filters to see more.'}</p></div>);
   const cover = current.images[pi] ?? coverOf(current); const nPhotos = current.images.length;
   return (
+    <MotionConfig reducedMotion="user">
     <div className="mx-auto max-w-sm">
       <p className="sr-only" aria-live="polite">{announce}</p>
       <div className="relative aspect-[4/5]">
@@ -73,5 +74,6 @@ export function SwipeDeck({ items, onNeedMore, hasMore }: { items: Listing[]; on
       </div>
       <p className="mt-4 text-center text-xs text-muted">Drag the card, use the buttons, or press ← / →</p>
     </div>
+    </MotionConfig>
   );
 }

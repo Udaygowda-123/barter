@@ -65,3 +65,22 @@ body { font-family: var(--font-sans); min-height: 100dvh; line-height: 1.5; -web
   radial-gradient(40rem 30rem at 85% -10%, rgb(255 118 94 / 0.28), transparent 60%),
   radial-gradient(36rem 28rem at -5% 20%, rgb(243 233 255 / 0.95), transparent 60%),
   radial-gradient(30rem 24rem at 60% 90%, rgb(216 244 223 / 0.8), transparent 60%); }
+
+/* ───────── Mobile hardening ───────── */
+html, body { overflow-x: clip; }
+html { -webkit-tap-highlight-color: transparent; scroll-padding-top: 5rem; }
+button, a, [role='button'], summary, label { touch-action: manipulation; }
+@media (max-width: 767px) { input:not([type='checkbox']):not([type='radio']):not([type='file']), select, textarea { font-size: 16px !important; } } /* iOS zooms inputs < 16px */
+@supports (padding: max(0px)) { .pb-safe { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); } }
+
+/* ───────── CSS-only landing motion (visible in the first paint) ───────── */
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes collage-in { from { opacity: 0; transform: translateY(28px) scale(.92) rotate(calc(var(--r) * 1.8)); } to { opacity: 1; transform: translateY(0) scale(1) rotate(var(--r)); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes spin-in { from { transform: translate(-50%, -50%) scale(0) rotate(-180deg); } to { transform: translate(-50%, -50%) scale(1) rotate(0); } }
+@keyframes draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.rise { animation: rise .6s cubic-bezier(.22, 1, .36, 1) both; animation-delay: var(--d, 0s); }
+.collage-in { transform: rotate(var(--r)); animation: collage-in .7s cubic-bezier(.22, 1, .36, 1) both; animation-delay: var(--d, 0s); }
+.float { animation: float 6s ease-in-out infinite; animation-delay: var(--f, 0s); }
+.spin-in { animation: spin-in .9s cubic-bezier(.34, 1.56, .64, 1) .5s both; }
+.underline-draw { transform-origin: left; animation: draw .7s ease-out .7s both; }

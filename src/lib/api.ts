@@ -9,6 +9,8 @@ export class ApiError extends Error {
 /** Access token lives in memory only; the refresh token is an httpOnly cookie managed by the API. */
 let accessToken: string | null = null;
 let refreshing: Promise<string | null> | null = null;
+let sessionUser: unknown = null; // the user returned alongside a refreshed token (saves a /users/me round-trip)
+export const consumeSessionUser = <T,>() => { const u = sessionUser as T | null; sessionUser = null; return u; };
 const listeners = new Set<(t: string | null) => void>();
 export const getToken = () => accessToken;
 export const setToken = (t: string | null) => { accessToken = t; listeners.forEach((l) => l(t)); };
@@ -20,6 +22,7 @@ export async function refreshSession(): Promise<string | null> {
       const res = await fetch(`${API_URL}/auth/refresh`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: '{}' });
       if (!res.ok) { setToken(null); return null; }
       const data = await res.json();
+      sessionUser = data.me ?? null;
       setToken(data.accessToken);
       return data.accessToken as string;
     } catch { return null; } finally { setTimeout(() => { refreshing = null; }, 0); }
@@ -27,10 +30,14 @@ export async function refreshSession(): Promise<string | null> {
   return refreshing;
 }
 
+const PUBLIC_READ = /^\/(discover|listings|users\/(?!me)[^/?]+)(\/|\?|$)/;
+
 interface Opts extends Omit<RequestInit, 'body'> { body?: unknown; idempotencyKey?: string; retry?: boolean }
 
 export async function api<T = unknown>(path: string, opts: Opts = {}): Promise<T> {
   const { body, idempotencyKey, retry = true, headers, ...rest } = opts;
+  // Anonymous reads of public data are CDN-cacheable; the marker keeps them separate from personalised (private) responses.
+  if (!accessToken && (rest.method ?? 'GET') === 'GET' && PUBLIC_READ.test(path) && !path.includes('public=')) path += `${path.includes('?') ? '&' : '?'}public=1`;
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   const res = await fetch(`${API_URL}${path}`, {
     ...rest, credentials: 'include',

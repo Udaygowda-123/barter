@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <main id="main" className="flex flex-col px-5 py-8 md:px-14 md:py-12">
         <div className="mb-8 md:hidden"><Logo /></div>
         <div className="m-auto w-full max-w-md">{children}</div>
-        <p className="mt-10 text-center text-xs text-muted"><Link href="/" className="underline">Back to home</Link></p>
+        <p className="mt-10 text-center text-xs text-muted"><Link href="/" className="inline-block px-2 py-3 underline">Back to home</Link></p>
       </main>
     </div>
   );

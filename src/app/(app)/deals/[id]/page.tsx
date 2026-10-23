@@ -23,7 +23,7 @@ const Step = ({ done, label }: { done: boolean; label: string }) => <li classNam
 
 export default function DealPage() {
   const { id } = useParams<{ id: string }>(); const { user, status } = useRequireAuth(); const qc = useQueryClient(); const toast = useToast();
-  const q = useQuery({ queryKey: ['deal', id], queryFn: () => api<Deal>(`/deals/${id}`), enabled: status === 'authed', retry: false, refetchInterval: 8000 });
+  const q = useQuery({ queryKey: ['deal', id], queryFn: () => api<Deal>(`/deals/${id}`), enabled: status === 'authed', retry: false, refetchOnWindowFocus: true });
   const [dlg, setDlg] = useState<'cancel' | 'dispute' | 'completion' | null>(null); const [reason, setReason] = useState('');
   const [method, setMethod] = useState<'LOCAL_HANDOVER' | 'SHIPPING'>('LOCAL_HANDOVER'); const [notes, setNotes] = useState(''); const [editPlan, setEditPlan] = useState(false);
   const [rating, setRating] = useState(0); const [review, setReview] = useState('');

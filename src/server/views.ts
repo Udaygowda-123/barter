@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { imageDto } from './media';
+import { imageDto, type ImageLean } from './media';
 import { Image, Listing, ListingDoc, User } from './models';
 import { sid, uniq } from './util';
 
@@ -17,17 +17,20 @@ export async function loadImages(listingIds: unknown[]) {
   return m;
 }
 
-/** Public listing shape: city/region only, never coordinates. */
-export async function listingViews(docs: ListingDoc[], viewerId?: string, extra: (l: ListingDoc) => Record<string, unknown> = () => ({})) {
+const LITE_KEYS = new Set(['title', 'category', 'condition', 'estimatedValue', 'locationCity', 'locationRegion', 'status', 'isSeedData', 'cashFlexibility']);
+const imageLite = (i: ImageLean) => { const d = imageDto(i); return { id: d.id, position: d.position, isCover: d.isCover, aiEdited: d.aiEdited, altText: d.altText, url: d.url, thumbUrl: d.thumbUrl }; };
+
+/** Public listing shape: city/region only, never coordinates. `lite` (feeds/lists) trims descriptions and image fields to what cards need. */
+export async function listingViews(docs: ListingDoc[], viewerId?: string, extra: (l: ListingDoc) => Record<string, unknown> = () => ({}), opts: { lite?: boolean } = {}) {
   if (!docs.length) return [];
   const [owners, images] = await Promise.all([loadUsers(docs.map((d) => d.ownerId)), loadImages(docs.map((d) => d._id))]);
   return docs.map((l) => {
     const o = owners.get(sid(l.ownerId));
-    const { _id, ownerId, locationLat: _a, locationLng: _b, ...rest } = l as ListingDoc & Record<string, unknown>;
+    const { _id, ownerId, locationLat: _a, locationLng: _b, __v: _v, updatedAt: _u, ...rest } = l as ListingDoc & Record<string, unknown>;
     return {
-      ...rest, id: sid(_id), ownerId: sid(ownerId),
+      ...(opts.lite ? Object.fromEntries(Object.entries(rest).filter(([k]) => LITE_KEYS.has(k))) : rest), id: sid(_id), ownerId: sid(ownerId),
       owner: { id: sid(ownerId), displayName: o?.displayName ?? 'Unknown', avatarUrl: o?.avatarUrl ?? null, locationCity: o?.locationCity ?? null, locationRegion: o?.locationRegion ?? null, verified: !!o?.emailVerifiedAt },
-      images: (images.get(sid(_id)) ?? []).map(imageDto), isOwner: viewerId === sid(ownerId), ...extra(l),
+      images: (images.get(sid(_id)) ?? []).map(opts.lite ? imageLite : imageDto), isOwner: viewerId === sid(ownerId), ...extra(l),
     };
   });
 }

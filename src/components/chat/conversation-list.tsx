@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 
 export function ConversationList() {
   const path = usePathname();
-  const q = useQuery({ queryKey: ['conversations'], queryFn: () => api<ConversationSummary[]>('/conversations'), refetchInterval: 8000 });
+  const q = useQuery({ queryKey: ['conversations'], queryFn: () => api<ConversationSummary[]>('/conversations'), refetchInterval: 15_000 });
   if (q.isLoading) return <div className="space-y-2 p-3">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20" />)}</div>;
   if (q.isError) return <div className="p-3"><ErrorState onRetry={() => q.refetch()} /></div>;
   if (!q.data!.length) return <div className="p-3"><EmptyState icon={<MessageCircle className="size-7" aria-hidden />} title="No conversations yet" body="A chat opens automatically when you make or receive an offer." action={<Button asChild size="sm"><Link href="/discover">Discover items</Link></Button>} /></div>;

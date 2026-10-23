@@ -16,7 +16,7 @@ const TABS = [{ id: 'all', label: 'All' }, { id: 'received', label: 'Received' }
 
 export default function Offers() {
   const { user, status } = useRequireAuth(); const [box, setBox] = useState<(typeof TABS)[number]['id']>('all');
-  const q = useQuery({ queryKey: ['offers', box], queryFn: () => api<Page<Offer>>(`/offers?box=${box}&limit=50`), enabled: status === 'authed', refetchInterval: 10_000 });
+  const q = useQuery({ queryKey: ['offers', box], queryFn: () => api<Page<Offer>>(`/offers?box=${box}&limit=50`), enabled: status === 'authed', refetchOnWindowFocus: true });
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="text-3xl font-black tracking-tight md:text-5xl">Offers</h1><p className="mt-1 text-muted">Everything you&apos;re negotiating, in one place.</p>

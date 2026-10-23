@@ -88,7 +88,7 @@ export function ImageUploader({ images, coverId, onChange, max = 8 }: Props) {
           </li>
         ))}
         {images.length < max && (
-          <li><button type="button" onClick={() => input.current?.click()} className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line bg-surface/60 text-sm font-semibold text-muted transition-colors hover:border-ink hover:text-ink">
+          <li className={images.length === 0 ? 'col-span-2 sm:col-span-1' : ''}><button type="button" onClick={() => input.current?.click()} className="flex aspect-[16/9] w-full sm:aspect-[4/5] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line bg-surface/60 text-sm font-semibold text-muted transition-colors hover:border-ink hover:text-ink">
             {uploading > 0 ? <Loader2 className="size-7 animate-spin" aria-hidden /> : <ImagePlus className="size-7" aria-hidden />}{uploading > 0 ? 'Uploading…' : 'Add photos'}<span className="text-xs font-normal">JPEG, PNG or WebP</span>
           </button></li>
         )}
