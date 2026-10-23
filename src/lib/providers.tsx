@@ -8,7 +8,7 @@ import { ToastProvider, useToast } from './toast';
 
 const TEXT: Record<string, string> = {
   OFFER_RECEIVED: 'You have a new offer', OFFER_COUNTERED: 'You received a counteroffer', OFFER_ACCEPTED: 'Your offer was accepted 🎉',
-  OFFER_REJECTED: 'An offer was declined', OFFER_WITHDRAWN: 'An offer was withdrawn', OFFER_EXPIRED: 'An offer expired',
+  OFFER_REJECTED: 'An offer was declined', OFFER_WITHDRAWN: 'An offer was withdrawn', OFFER_CANCELLED: 'An offer was cancelled (item unavailable)', OFFER_EXPIRED: 'An offer expired',
   DEAL_UPDATED: 'A deal was updated', REVIEW_RECEIVED: 'You received a review', MODERATION: 'Moderation update',
 };
 

@@ -27,6 +27,9 @@ Demo logins (after seeding): `maya@swapd.demo`, `arjun@swapd.demo`, `zoya@swapd.
 2. **Environment variables:** `MONGODB_URI`, `JWT_ACCESS_SECRET` (32+ random chars), and for photo uploads either `CLOUDINARY_URL` (Cloudinary → Settings → API Keys → copy the "API environment variable" and replace the placeholders) or `BLOB_READ_WRITE_TOKEN` (Vercel Storage → Blob). Cloudinary wins if both are set.
 3. In MongoDB Atlas → Network Access, allow `0.0.0.0/0` (Vercel IPs change).
 
+## Tests
+`pnpm test` runs 42 API/flow tests (auth, offers & revisions, offer↔chat sync, deals & reviews, listings, security) against an in-memory MongoDB replica set — your real database is never touched. `pnpm typecheck` checks client and server. See [docs/AUDIT.md](docs/AUDIT.md) for the offer/message/deal model and the verification checklist.
+
 ## Auth & email
 Email + password sign-up, sign-in with rotating refresh tokens, **email verification** (link emailed on sign-up; the profile gets a verified badge), **forgot password** (one-time link, 1 h expiry, only the newest link works, all sessions signed out after a reset), and **change password**. Reset requests are rate-limited (3 per hour per address) and answer identically for unknown addresses.
 

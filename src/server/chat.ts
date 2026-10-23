@@ -21,7 +21,7 @@ export async function addEventMessage(session: ClientSession, conversationId: un
   await Conversation.updateOne({ _id: conversationId }, { $set: { updatedAt: now, lastMessage: { senderId: senderId ?? null, type, content: content.slice(0, 120), createdAt: now } } }, { session });
 }
 
-export async function serializeMessages(rows: MessageDoc[]) {
+export async function serializeMessages(rows: MessageDoc[], viewerId?: string) {
   const senderIds = rows.map((r) => r.senderId).filter(Boolean);
   const attIds = rows.flatMap((r) => r.attachmentIds);
   const offerIds = rows.map((r) => r.offerId).filter(Boolean);
@@ -38,6 +38,12 @@ export async function serializeMessages(rows: MessageDoc[]) {
       id: sid(m._id), conversationId: sid(m.conversationId), type: m.type, content: m.content, clientId: m.clientId, createdAt: m.createdAt,
       sender: m.senderId && sMap.get(sid(m.senderId)) ? userBrief(sMap.get(sid(m.senderId))!) : null,
       attachments: m.attachmentIds.map((a) => aMap.get(sid(a))).filter(Boolean).map((a) => imageDto(a!)),
+      // Live state of the underlying offer, so a card always agrees with the Offers page.
+      ...(o && m.type === 'OFFER_CARD' ? (() => {
+        const open = ['PENDING', 'COUNTERED'].includes(o.status); const expired = open && o.expiresAt <= new Date(); const latest = o.revisions[o.revisions.length - 1];
+        const awaiting = open && !expired && latest ? (sid(latest.authorId) === sid(o.senderId) ? sid(o.recipientId) : sid(o.senderId)) : null;
+        return { offerStatus: expired ? 'EXPIRED' : o.status, isCurrentRevision: m.revisionNumber === o.latestRevisionNo, yourTurn: !!viewerId && awaiting === viewerId, dealId: o.dealId ? sid(o.dealId) : null };
+      })() : {}),
       offerRevision: o && r ? {
         id: `${sid(o._id)}:${r.number}`, number: r.number, offerId: sid(o._id), authorId: sid(r.authorId), cashAmount: r.cashAmount, currency: r.currency, cashPayerId: r.cashPayerId ? sid(r.cashPayerId) : null, message: r.message,
         items: [...r.offeredListingIds.map((id: unknown) => ({ role: 'OFFERED' as const, id })), ...r.requestedListingIds.map((id: unknown) => ({ role: 'REQUESTED' as const, id }))].map((i: any) => { const b = briefs.get(sid(i.id)); return { role: i.role, listing: { id: sid(i.id), title: b?.title ?? 'Item', ownerId: b?.ownerId ?? '', estimatedValue: b?.estimatedValue ?? null, thumbUrl: b?.thumbUrl ?? null } }; }),
@@ -48,7 +54,7 @@ export async function serializeMessages(rows: MessageDoc[]) {
 
 export async function listConversations(userId: string) {
   const uid = toId(userId);
-  const convs = await Conversation.find({ 'members.userId': uid }).sort({ updatedAt: -1 }).limit(50).lean();
+  const convs = await Conversation.find({ 'members.userId': uid, $or: [{ lastMessage: { $ne: null } }, { offerId: { $ne: null } }] }).sort({ updatedAt: -1 }).limit(50).lean();
   if (!convs.length) return [];
   const [users, offers] = await Promise.all([
     User.find({ _id: { $in: uniq(convs.flatMap((c: any) => c.members.map((m: any) => m.userId))) } }).select('displayName avatarUrl').lean(),
@@ -92,7 +98,7 @@ export async function getMessages(userId: string, conversationId: string, opts: 
   const rows = afterAt
     ? await Message.find({ conversationId: cid, createdAt: { $gt: afterAt } }).sort({ createdAt: 1, _id: 1 }).limit(limit).lean()
     : (await Message.find({ conversationId: cid, ...(beforeAt ? { createdAt: { $lt: beforeAt } } : {}) }).sort({ createdAt: -1, _id: -1 }).limit(limit).lean()).reverse();
-  return { items: await serializeMessages(rows), hasMore: rows.length === limit };
+  return { items: await serializeMessages(rows, userId), hasMore: rows.length === limit };
 }
 
 export async function sendMessage(userId: string, conversationId: string, input: { content: string; clientId?: string; attachmentKeys?: string[] }) {
@@ -103,15 +109,15 @@ export async function sendMessage(userId: string, conversationId: string, input:
   if (attachmentIds.length && (await Image.countDocuments({ _id: { $in: attachmentIds }, uploaderId: uid, listingId: null })) !== attachmentIds.length) throw bad('INVALID_ATTACHMENT', 'Attachment not found');
   if (input.clientId) { // idempotent retries
     const dup = await Message.findOne({ conversationId: conv._id, senderId: uid, clientId: input.clientId }).lean();
-    if (dup) return (await serializeMessages([dup]))[0];
+    if (dup) return (await serializeMessages([dup], userId))[0];
   }
   let created;
   try { created = await Message.create({ conversationId: conv._id, senderId: uid, type: 'TEXT', content: input.content, clientId: input.clientId ?? null, attachmentIds }); }
-  catch (e) { if ((e as { code?: number }).code === 11000) { const dup = await Message.findOne({ conversationId: conv._id, senderId: uid, clientId: input.clientId }).lean(); if (dup) return (await serializeMessages([dup]))[0]; } throw e; }
+  catch (e) { if ((e as { code?: number }).code === 11000) { const dup = await Message.findOne({ conversationId: conv._id, senderId: uid, clientId: input.clientId }).lean(); if (dup) return (await serializeMessages([dup], userId))[0]; } throw e; }
   await Conversation.updateOne({ _id: conv._id, 'members.userId': uid }, { $set: { updatedAt: created.createdAt, 'members.$.lastReadAt': created.createdAt, lastMessage: { senderId: uid, type: 'TEXT', content: input.content.slice(0, 120), createdAt: created.createdAt } } });
   const me = await User.findById(uid).select('displayName').lean();
   for (const o of others) await notify(o, 'MESSAGE', { conversationId, preview: input.content.slice(0, 80), from: me?.displayName }, { dedupeKey: `msg:${conversationId}`, coalesce: true });
-  return (await serializeMessages([created.toObject()]))[0];
+  return (await serializeMessages([created.toObject()], userId))[0];
 }
 
 export async function markRead(userId: string, conversationId: string) {

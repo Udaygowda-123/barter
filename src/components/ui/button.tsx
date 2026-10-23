@@ -15,6 +15,7 @@ export const buttonStyles = cva(
         outline: 'border border-line bg-surface text-ink hover:border-ink',
         ghost: 'text-ink hover:bg-ink/5',
         danger: 'bg-danger text-white hover:bg-[#8f1c12]',
+        light: 'bg-white/10 text-paper ring-1 ring-white/35 backdrop-blur hover:bg-white/20 on-ink', // secondary action on dark/video surfaces
       },
       size: { sm: 'h-10 px-4 text-sm md:h-9', md: 'h-11 px-5 text-sm', lg: 'h-14 px-6 text-base sm:px-8', icon: 'size-11' },
     },

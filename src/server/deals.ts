@@ -4,8 +4,9 @@ import type { AuthUser } from './auth-core';
 import { addEventMessage } from './chat';
 import { withTx } from './db';
 import { bad, conflict, forbidden, notFound } from './http';
-import { Deal, DealDoc, Listing, ListingLock, Offer, Report, Review, User } from './models';
+import { Deal, DealDoc, DealSnapshot, Listing, ListingLock, Offer, Report, Review, User } from './models';
 import { notify } from './notifications';
+import * as storage from './storage';
 import { sid, toId } from './util';
 import { listingBriefs, userBrief } from './views';
 
@@ -24,15 +25,19 @@ export async function dealViews(deals: DealDoc[], viewerId: string) {
   const reviews = await Review.find({ dealId: { $in: deals.map((d) => d._id) } }).lean();
   return deals.map((d) => {
     const o = offers.get(sid(d.offerId)); const rev = o?.revisions.find((r) => r.number === d.acceptedRevisionNo);
-    const isA = viewerId === sid(d.userAId); const items = [...(rev?.offeredListingIds ?? []), ...(rev?.requestedListingIds ?? [])].map((id) => briefs.get(sid(id))).filter(Boolean) as ReturnType<typeof briefs.get>[];
+    const isA = viewerId === sid(d.userAId);
+    // Accepted terms come from the snapshot taken at acceptance (legacy deals fall back to the offer revision).
+    const snap = d.snapshot as DealSnapshot | undefined;
+    const accepted = snap ? snap.items.map((i) => ({ id: sid(i.listingId), title: i.title, status: briefs.get(sid(i.listingId))?.status ?? 'RESERVED', ownerId: sid(i.ownerId), category: i.category, estimatedValue: i.estimatedValue, thumbUrl: storage.url(i.thumbRef) })) : null;
+    const items = [...(rev?.offeredListingIds ?? []), ...(rev?.requestedListingIds ?? [])].map((id) => briefs.get(sid(id))).filter(Boolean) as ReturnType<typeof briefs.get>[];
     const mine = reviews.find((r) => sid(r.dealId) === sid(d._id) && sid(r.authorId) === viewerId); const theirs = reviews.find((r) => sid(r.dealId) === sid(d._id) && sid(r.authorId) !== viewerId);
     const rv = (r?: typeof mine) => (r ? { id: sid(r._id), rating: r.rating, body: r.body, createdAt: r.createdAt } : null);
     const cp = users.get(sid(other(d, viewerId)));
     return {
       id: sid(d._id), offerId: sid(d.offerId), status: d.status, createdAt: d.createdAt, completedAt: d.completedAt, conversationId: o?.conversationId ? sid(o.conversationId) : null,
       counterpart: cp ? userBrief(cp) : { id: sid(other(d, viewerId)), displayName: 'Unknown', avatarUrl: null },
-      terms: { revisionNumber: d.acceptedRevisionNo, cashAmount: rev?.cashAmount ?? 0, currency: rev?.currency ?? 'INR', cashPayerId: rev?.cashPayerId ? sid(rev.cashPayerId) : null, message: rev?.message ?? null,
-        giving: items.filter((i) => i!.ownerId === viewerId), receiving: items.filter((i) => i!.ownerId !== viewerId) },
+      terms: { revisionNumber: snap?.revisionNumber ?? d.acceptedRevisionNo, cashAmount: snap?.cashAmount ?? rev?.cashAmount ?? 0, currency: snap?.currency ?? rev?.currency ?? 'INR', cashPayerId: snap ? (snap.cashPayerId ? sid(snap.cashPayerId) : null) : rev?.cashPayerId ? sid(rev.cashPayerId) : null, message: snap ? snap.message : rev?.message ?? null,
+        giving: (accepted ?? items).filter((i: any) => i.ownerId === viewerId), receiving: (accepted ?? items).filter((i: any) => i.ownerId !== viewerId) },
       handover: { method: d.handoverMethod, notes: d.handoverNotes, confirmedByMe: !!(isA ? d.handoverConfirmedByA : d.handoverConfirmedByB), confirmedByOther: !!(isA ? d.handoverConfirmedByB : d.handoverConfirmedByA) },
       completion: { confirmedByMe: !!(isA ? d.completedByA : d.completedByB), confirmedByOther: !!(isA ? d.completedByB : d.completedByA) },
       cancellation: d.status === 'CANCELLED' ? { byMe: sid(d.cancelledById) === viewerId, reason: d.cancelReason } : null,

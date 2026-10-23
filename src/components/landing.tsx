@@ -1,21 +1,12 @@
-'use client';
-import { domAnimation, LazyMotion, m as motion, MotionConfig } from 'framer-motion';
 import { ArrowLeftRight, BadgeCheck, EyeOff, Handshake, MessageSquareText, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 import { PHOTOS, P } from './landing-data';
-const rise = { hidden: { opacity: 0, y: 28 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const } } };
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.12 } } };
-
+// Below-the-fold sections are plain server HTML; `.reveal` (globals.css) animates them in on scroll with CSS only.
 function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <motion.div variants={rise} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-80px' }} className={className}>{children}</motion.div>;
-}
-
-/** Wraps the below-the-fold sections: lazy animation features + reduced-motion support, scoped to this page only. */
-export function MotionRoot({ children }: { children: React.ReactNode }) {
-  return <MotionConfig reducedMotion="user"><LazyMotion features={domAnimation} strict>{children}</LazyMotion></MotionConfig>;
+  return <div className={cn('reveal', className)}>{children}</div>;
 }
 
 const STEPS = [
@@ -28,13 +19,13 @@ export function HowItWorks() {
   return (
     <section aria-labelledby="how" className="mx-auto max-w-7xl px-5 py-20 md:px-8">
       <Reveal><p className="text-sm font-bold uppercase tracking-widest text-coral-ink">How it works</p><h2 id="how" className="mt-2 max-w-2xl text-4xl font-black tracking-tight md:text-5xl">Four steps from “I don&apos;t use this” to “I love this”.</h2></Reveal>
-      <motion.ol variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-60px' }} className="mt-12 grid gap-5 md:grid-cols-4">
+      <ol className="mt-12 grid gap-5 md:grid-cols-4">
         {STEPS.map((s, i) => (
-          <motion.li key={s.title} variants={rise} whileHover={{ y: -6 }} className="rounded-[var(--radius-card)] border border-line bg-surface p-6 shadow-[var(--shadow-card)]">
+          <li key={s.title} className="reveal transition-transform duration-300 hover:-translate-y-1.5 rounded-[var(--radius-card)] border border-line bg-surface p-6 shadow-[var(--shadow-card)]">
             <span className={cn('flex size-14 items-center justify-center rounded-2xl', s.tone)}><s.icon className="size-7" aria-hidden /></span>
             <p className="mt-5 text-xs font-bold uppercase tracking-widest text-muted">Step {i + 1}</p><h3 className="mt-1 text-xl font-bold">{s.title}</h3><p className="mt-2 text-sm text-muted">{s.body}</p>
-          </motion.li>))}
-      </motion.ol>
+          </li>))}
+      </ol>
     </section>
   );
 }
@@ -52,11 +43,11 @@ export function SwapShowcase() {
         <Reveal>
           <div className="relative rounded-[2rem] bg-white/5 p-5 ring-1 ring-white/10" role="img" aria-label="Illustration of an offer with a counteroffer: sneakers for headphones plus 500 rupees">
             {[{ v: 'Version 1', a: PHOTOS[0], b: PHOTOS[2], c: null, t: 'Offered by Bilal' }, { v: 'Version 2', a: PHOTOS[0], b: PHOTOS[2], c: '+ ₹500 from Bilal', t: 'Countered by Asha' }].map((r, i) => (
-              <motion.div key={r.v} initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.25 }} className={cn('flex items-center gap-3 rounded-2xl p-3', i ? 'mt-3 bg-coral text-ink' : 'bg-white/10')}>
+              <div key={r.v} className={cn('reveal flex items-center gap-3 rounded-2xl p-3', i ? 'mt-3 bg-coral text-ink' : 'bg-white/10')}>
                 <img src={r.a.src} alt="" className="size-16 rounded-xl object-cover" /><ArrowLeftRight className="size-5 shrink-0" aria-hidden /><img src={r.b.src} alt="" className="size-16 rounded-xl object-cover" />
                 <div className="min-w-0 flex-1"><p className="text-sm font-black">{r.v}</p><p className="truncate text-xs opacity-80">{r.t}</p></div>{r.c && <span className="rounded-full bg-ink px-3 py-1 text-xs font-bold text-paper">{r.c}</span>}
-              </motion.div>))}
-            <motion.p initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: 0.7 }} className="mt-3 rounded-2xl bg-mint px-4 py-3 text-center text-sm font-black text-mint-ink">Accepted: version 2 → deal created ✓</motion.p>
+              </div>))}
+            <p className="reveal mt-3 rounded-2xl bg-mint px-4 py-3 text-center text-sm font-black text-mint-ink">Accepted: version 2 → deal created ✓</p>
           </div>
         </Reveal>
       </div>
@@ -69,13 +60,13 @@ export function Categories() {
   return (
     <section aria-labelledby="cats" className="mx-auto max-w-7xl px-5 py-20 md:px-8">
       <Reveal><h2 id="cats" className="text-4xl font-black tracking-tight md:text-5xl">Find your corner</h2><p className="mt-2 text-muted">Pick a category and dive in.</p></Reveal>
-      <motion.ul variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <ul className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         {CATS.map((c) => (
-          <motion.li key={c.c} variants={rise}><Link href={`/discover?category=${c.c}`} className="group relative block aspect-[3/4] overflow-hidden rounded-3xl">
+          <li key={c.c} className="reveal"><Link href={`/discover?category=${c.c}`} className="group relative block aspect-[3/4] overflow-hidden rounded-3xl">
             <img src={P(c.p)} alt="" loading="lazy" className="size-full object-cover transition-transform duration-700 group-hover:scale-110" />
             <span className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent" /><span className="absolute inset-x-4 bottom-4 flex items-center justify-between text-lg font-black text-paper">{c.n}<ArrowLeftRight className="size-4 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden /></span>
-          </Link></motion.li>))}
-      </motion.ul>
+          </Link></li>))}
+      </ul>
     </section>
   );
 }
@@ -91,9 +82,9 @@ export function Trust() {
     <section aria-labelledby="trust" className="bg-surface py-20">
       <div className="mx-auto max-w-7xl px-5 md:px-8">
         <Reveal><h2 id="trust" className="max-w-2xl text-4xl font-black tracking-tight md:text-5xl">Built for trust, not just trading</h2></Reveal>
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {TRUST.map((t) => (<motion.div key={t.title} variants={rise} whileHover={{ y: -6 }} className="rounded-[var(--radius-card)] border border-line bg-paper p-6"><span className={cn('flex size-12 items-center justify-center rounded-2xl', t.tone)}><t.icon className="size-6" aria-hidden /></span><h3 className="mt-4 text-lg font-bold">{t.title}</h3><p className="mt-2 text-sm text-muted">{t.body}</p></motion.div>))}
-        </motion.div>
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {TRUST.map((t) => (<div key={t.title} className="reveal transition-transform duration-300 hover:-translate-y-1.5 rounded-[var(--radius-card)] border border-line bg-paper p-6"><span className={cn('flex size-12 items-center justify-center rounded-2xl', t.tone)}><t.icon className="size-6" aria-hidden /></span><h3 className="mt-4 text-lg font-bold">{t.title}</h3><p className="mt-2 text-sm text-muted">{t.body}</p></div>))}
+        </div>
         <Reveal className="mt-14">
           <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-coral via-[#ff9a7e] to-[#ffc2a8] p-8 text-ink md:p-14">
             <div className="relative z-10 flex flex-wrap items-center justify-between gap-6"><div><h2 className="max-w-xl text-3xl font-black tracking-tight md:text-5xl">Got something sitting around? Trade it for something you&apos;ll love.</h2><p className="mt-2 font-medium">Takes two minutes to list. Free while we grow.</p></div><Button asChild variant="ink" size="lg"><Link href="/register">Create free account</Link></Button></div>

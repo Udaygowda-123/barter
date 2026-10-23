@@ -1,11 +1,12 @@
 'use client';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { CATEGORIES, CATEGORY_LABELS, CONDITIONS, CONDITION_LABELS } from '@/shared/types';
-import { Compass, LayoutGrid, Layers, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, Layers, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { GridSkeleton, ListingCard, ListingGrid } from '@/components/listing/listing-card';
+import { CATEGORY_ICON } from './category-icons';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -23,6 +24,7 @@ function Discover({ initialFeed }: { initialFeed: Page<Listing> | null }) {
   const sp = useSearchParams(); const router = useRouter(); const path = usePathname(); const { status } = useAuth(); const qc = useQueryClient(); const toast = useToast();
   const params = { q: sp.get('q') ?? '', category: sp.get('category') ?? '', condition: sp.get('condition') ?? '', minValue: sp.get('minValue') ?? '', maxValue: sp.get('maxValue') ?? '', city: sp.get('city') ?? '' };
   const mode = sp.get('view') === 'swipe' ? 'swipe' : 'grid';
+  const sort = sp.get('sort') === 'new' ? 'new' : 'best'; // 'best' = ranked /discover feed, 'new' = newest active listings
   const [search, setSearch] = useState(params.q); const [filtersOpen, setFiltersOpen] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
@@ -36,13 +38,19 @@ function Discover({ initialFeed }: { initialFeed: Page<Listing> | null }) {
 
   const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
   const feed = useInfiniteQuery({
-    queryKey: ['discover', qs, status === 'authed'],
+    queryKey: ['discover', qs, status === 'authed', sort],
     enabled: status !== 'loading',
     initialPageParam: '',
-    queryFn: ({ pageParam }) => api<Page<Listing>>(`/discover?${qs}${qs ? '&' : ''}limit=${mode === 'swipe' ? 12 : 20}${pageParam ? `&cursor=${pageParam}` : ''}`),
+    queryFn: async ({ pageParam }) => {
+      const limit = `limit=${mode === 'swipe' ? 12 : 20}${pageParam ? `&cursor=${pageParam}` : ''}`;
+      if (sort === 'best') return api<Page<Listing>>(`/discover?${qs}${qs ? '&' : ''}${limit}`);
+      // Newest uses the existing listings endpoint (same filters); hide your own items like the ranked feed does.
+      const r = await api<Page<Listing>>(`/listings?${qs}${qs ? '&' : ''}status=ACTIVE&${limit}`);
+      return { ...r, items: r.items.filter((l) => !l.isOwner) };
+    },
     getNextPageParam: (last) => last.pageInfo.nextCursor ?? undefined,
     // Server-rendered first screen for anonymous visitors on the default feed; personalised feeds load after sign-in.
-    ...(initialFeed && !qs && status !== 'authed' && mode === 'grid' ? { initialData: { pages: [initialFeed], pageParams: [''] } } : {}),
+    ...(initialFeed && !qs && sort === 'best' && status !== 'authed' && mode === 'grid' ? { initialData: { pages: [initialFeed], pageParams: [''] } } : {}),
   });
   const items = (feed.data?.pages.flatMap((p) => p.items) ?? []).filter((l) => !hidden.has(l.id));
   const activeFilters = ['condition', 'minValue', 'maxValue', 'city'].filter((k) => params[k as keyof typeof params]).length;
@@ -57,10 +65,16 @@ function Discover({ initialFeed }: { initialFeed: Page<Listing> | null }) {
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div><h1 className="text-3xl font-black tracking-tight md:text-5xl">Discover</h1><p className="mt-1 text-muted">{status === 'authed' ? 'Picked for what you want and what you have.' : 'Browse what people are swapping. Sign in for a feed tuned to you.'}</p></div>
+        <div><p className="text-sm font-bold uppercase tracking-[0.18em] text-coral-ink">Discover</p><h1 className="mt-1 text-4xl font-extrabold leading-[1.02] md:text-6xl">Find your next <em className="accent font-normal text-cobalt-ink">favourite</em></h1><p className="mt-2 text-muted">{status === 'authed' ? 'Picked for what you want and what you have.' : 'Browse what people are swapping. Sign in for a feed tuned to you.'}</p></div>
+        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-1 rounded-full bg-ink/5 p-1" role="group" aria-label="Sort">
+          <button onClick={() => setParam({ sort: '' })} aria-pressed={sort === 'best'} className={`h-10 rounded-full px-4 text-sm font-semibold ${sort === 'best' ? 'bg-surface shadow' : ''}`}>Best match</button>
+          <button onClick={() => setParam({ sort: 'new' })} aria-pressed={sort === 'new'} className={`h-10 rounded-full px-4 text-sm font-semibold ${sort === 'new' ? 'bg-surface shadow' : ''}`}>Newest</button>
+        </div>
         <div className="flex gap-1 rounded-full bg-ink/5 p-1" role="group" aria-label="View mode">
           <button onClick={() => setParam({ view: '' })} aria-pressed={mode === 'grid'} className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold ${mode === 'grid' ? 'bg-surface shadow' : ''}`}><LayoutGrid className="size-4" aria-hidden />Grid</button>
           <button onClick={() => setParam({ view: 'swipe' })} aria-pressed={mode === 'swipe'} className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold ${mode === 'swipe' ? 'bg-surface shadow' : ''}`}><Layers className="size-4" aria-hidden />Swipe</button>
+        </div>
         </div>
       </div>
 
@@ -71,13 +85,13 @@ function Discover({ initialFeed }: { initialFeed: Page<Listing> | null }) {
         </div>
         <div role="group" aria-label="Categories" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
           <Chip active={!params.category} onClick={() => setParam({ category: '' })}>All</Chip>
-          {CATEGORIES.map((c) => <Chip key={c} active={params.category === c} onClick={() => setParam({ category: c })}>{CATEGORY_LABELS[c]}</Chip>)}
+          {CATEGORIES.map((c) => { const I = CATEGORY_ICON[c]; return <Chip key={c} active={params.category === c} onClick={() => setParam({ category: c })} className="inline-flex items-center gap-1.5"><I className="size-4" aria-hidden />{CATEGORY_LABELS[c]}</Chip>; })}
         </div>
       </div>
 
       <div className="mt-8" aria-live="polite" aria-busy={feed.isFetching}>
         {feed.isLoading || status === 'loading' ? <GridSkeleton /> : feed.isError ? <ErrorState message="We couldn't load the feed." onRetry={() => feed.refetch()} /> : items.length === 0 ? (
-          <EmptyState icon={<Compass className="size-7" aria-hidden />} title={qs ? 'Nothing matches those filters' : 'No items yet'} body={qs ? 'Try a different search, or clear your filters.' : 'Be the first to list something — others will find it here.'} action={qs ? <Button variant="outline" onClick={() => router.replace(path)}>Clear filters</Button> : <Button asChild><Link href="/listing/new"><Plus className="size-4" aria-hidden />List an item</Link></Button>} />
+          <EmptyState art={qs ? 'search' : 'box'} title={qs ? 'Nothing matches those filters' : 'No items yet'} body={qs ? 'Try a different search, or clear your filters.' : 'Be the first to list something — others will find it here.'} action={qs ? <Button variant="outline" onClick={() => router.replace(path)}>Clear filters</Button> : <Button asChild><Link href="/listing/new"><Plus className="size-4" aria-hidden />List an item</Link></Button>} />
         ) : mode === 'swipe' ? (
           <SwipeDeck items={items} hasMore={!!feed.hasNextPage} onNeedMore={fetchMore} />
         ) : (<>

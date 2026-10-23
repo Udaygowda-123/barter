@@ -6,7 +6,7 @@ import { env } from './config';
 import { addEventMessage } from './chat';
 import { connectDb, withTx } from './db';
 import { HttpError, bad, conflict, forbidden, notFound } from './http';
-import { Conversation, Deal, Listing, ListingLock, Offer, OfferDoc, RevisionDoc, User } from './models';
+import { Conversation, Deal, DealSnapshot, Image, Listing, ListingLock, Offer, OfferDoc, RevisionDoc, User } from './models';
 import { notify } from './notifications';
 import { isBlockedBetween } from './users';
 import { decodeCursor, encodeCursor, sid, toId, uniq } from './util';
@@ -104,21 +104,22 @@ export async function closeOffersForListings(session: ClientSession, listingIds:
   const ids = uniq(listingIds).map(toId);
   const open = await Offer.find({ open: true, ...(opts.exceptOfferId ? { _id: { $ne: opts.exceptOfferId } } : {}), $or: [{ targetListingId: { $in: ids } }, { 'revisions.offeredListingIds': { $in: ids } }, { 'revisions.requestedListingIds': { $in: ids } }] }).session(session).lean();
   for (const o of open) {
-    const senderSide = await Listing.exists({ _id: { $in: ids }, ownerId: o.senderId }).session(session);
-    const status = senderSide ? 'WITHDRAWN' : 'REJECTED';
-    await Offer.updateOne({ _id: o._id }, { $set: closedFields(status), $inc: { version: 1 } }, { session });
-    for (const uid of [o.senderId, o.recipientId]) await notify(uid, status === 'WITHDRAWN' ? 'OFFER_WITHDRAWN' : 'OFFER_REJECTED', { offerId: sid(o._id), reason: opts.reason }, { dedupeKey: `offer:${sid(o._id)}:closed`, session });
+    // Closed by the system, not by either person, so it is "cancelled" — not "declined" or "withdrawn".
+    await Offer.updateOne({ _id: o._id }, { $set: closedFields('CANCELLED'), $inc: { version: 1 } }, { session });
+    for (const uid of [o.senderId, o.recipientId]) await notify(uid, 'OFFER_CANCELLED', { offerId: sid(o._id), reason: opts.reason }, { dedupeKey: `offer:${sid(o._id)}:closed`, session });
     if (o.conversationId) await addEventMessage(session, o.conversationId, 'SYSTEM', 'This offer was closed because an item is no longer available.', null);
   }
 }
 
 // ───────── queries ─────────
 
-export async function listOffers(userId: string, q: { box: 'sent' | 'received' | 'all'; status?: string; cursor?: string; limit: number }) {
+export async function listOffers(userId: string, q: { box: 'sent' | 'received' | 'all'; status?: string; state?: 'open' | 'closed'; cursor?: string; limit: number }) {
   const uid = toId(userId);
   const parties = q.box === 'sent' ? { senderId: uid } : q.box === 'received' ? { recipientId: uid } : { $or: [{ senderId: uid }, { recipientId: uid }] };
   const cur = decodeCursor(q.cursor);
-  const rows = await Offer.find({ ...parties, ...(q.status ? { status: q.status } : {}), ...(cur ? { _id: { $lt: cur } } : {}) }).sort({ _id: -1 }).limit(q.limit + 1).lean();
+  const now = new Date();
+  const state = q.state === 'open' ? { open: true, expiresAt: { $gt: now } } : q.state === 'closed' ? { $or: [{ open: false }, { expiresAt: { $lte: now } }] } : {};
+  const rows = await Offer.find({ $and: [parties, state, q.status ? { status: q.status } : {}, cur ? { _id: { $lt: cur } } : {}] }).sort({ _id: -1 }).limit(q.limit + 1).lean();
   const items = rows.slice(0, q.limit);
   return { items: await offerViews(items, userId), pageInfo: { nextCursor: rows.length > q.limit ? encodeCursor(items[items.length - 1]._id) : null } };
 }
@@ -139,11 +140,19 @@ export async function createOffer(user: AuthUser, input: z.infer<typeof createOf
   // Same answer as viewing the listing, so a block is never revealed to the blocked person.
   if (await isBlockedBetween(user.id, sid(target.ownerId))) throw notFound('LISTING_NOT_FOUND', 'Listing not found');
   const ids = await validateTerms(user.id, sid(target.ownerId), input);
-  const offerId = new Types.ObjectId(); const convId = new Types.ObjectId();
+  const offerId = new Types.ObjectId();
+  // One negotiation thread per (pair of people, target item): later offers and counters reuse it.
+  const [lo, hi] = [user.id, sid(target.ownerId)].sort(); const key = `${sid(target._id)}:${lo}:${hi}`;
+  const now = new Date();
+  const seed = { key, listingId: target._id, members: [{ userId: toId(user.id), lastReadAt: now }, { userId: target.ownerId, lastReadAt: now }], createdAt: now, updatedAt: now };
+  // Done outside the transaction so a concurrent first-create race can't abort the offer; empty threads stay hidden until they hold a message.
+  const getThread = () => Conversation.findOneAndUpdate({ key }, { $setOnInsert: seed }, { upsert: true, returnDocument: 'after' }).lean();
+  const conv = await getThread().catch((e) => { if ((e as { code?: number }).code === 11000) return Conversation.findOne({ key }).lean(); throw e; });
+  const convId = conv!._id;
   try {
     await withTx(async (s) => {
       await Offer.create([{ _id: offerId, targetListingId: target._id, senderId: toId(user.id), recipientId: target.ownerId, expiresAt: ttl(), conversationId: convId, revisions: [buildRevision(1, user.id, user.id, sid(target.ownerId), input, ids)] }], { session: s });
-      await Conversation.create([{ _id: convId, offerId, listingId: target._id, members: [{ userId: toId(user.id) }, { userId: target.ownerId }] }], { session: s });
+      await Conversation.updateOne({ _id: convId }, { $set: { offerId } }, { session: s }); // thread points at its latest offer
       await addEventMessage(s, convId, 'OFFER_CARD', 'New offer', user.id, { id: offerId, revision: 1 });
       await notify(target.ownerId, 'OFFER_RECEIVED', { offerId: sid(offerId), revision: 1 }, { dedupeKey: `offer:${sid(offerId)}:rev1`, session: s });
     });
@@ -202,7 +211,13 @@ export async function acceptOffer(user: AuthUser, id: string, input: { expectedV
       const upd = await Offer.findOneAndUpdate({ _id: o._id, version: o.version, status: { $in: OPEN }, latestRevisionNo: latest.number, expiresAt: { $gt: new Date() } },
         { $set: { ...closedFields('ACCEPTED'), acceptedRevisionNo: latest.number }, $inc: { version: 1 } }, { session: s, returnDocument: 'after' });
       if (!upd) throw conflict('STALE_OFFER', 'This offer changed — refresh and try again');
-      const [deal] = await Deal.create([{ offerId: o._id, acceptedRevisionNo: latest.number, userAId: o.senderId, userBId: o.recipientId, listingIds }], { session: s });
+      const [lst, covers] = await Promise.all([Listing.find({ _id: { $in: listingIds } }).session(s).lean(), Image.find({ listingId: { $in: listingIds }, isCover: true }).session(s).lean()]);
+      const byId = new Map(lst.map((l: any) => [sid(l._id), l])); const cover = new Map(covers.map((i: any) => [sid(i.listingId), i]));
+      const item = (id: any, role: 'OFFERED' | 'REQUESTED') => { const l = byId.get(sid(id)); return { listingId: id, role, ownerId: l.ownerId, title: l.title, category: l.category, condition: l.condition, estimatedValue: l.estimatedValue ?? null, thumbRef: cover.get(sid(id))?.thumbKey ?? null }; };
+      // Terms frozen at the instant of acceptance; later edits to listings can never change what was agreed.
+      const snapshot: DealSnapshot = { revisionNumber: latest.number, acceptedAt: new Date(), cashAmount: latest.cashAmount, currency: latest.currency, cashPayerId: latest.cashPayerId ?? null, message: latest.message ?? null,
+        items: [...latest.offeredListingIds.map((id: any) => item(id, 'OFFERED')), ...latest.requestedListingIds.map((id: any) => item(id, 'REQUESTED'))] };
+      const [deal] = await Deal.create([{ offerId: o._id, acceptedRevisionNo: latest.number, userAId: o.senderId, userBId: o.recipientId, listingIds, snapshot }], { session: s });
       await ListingLock.create(listingIds.map((listingId) => ({ listingId, dealId: deal._id })), { session: s, ordered: true });
       await Offer.updateOne({ _id: o._id }, { $set: { dealId: deal._id } }, { session: s });
       await closeOffersForListings(s, listingIds, { exceptOfferId: o._id, reason: 'item_unavailable' });

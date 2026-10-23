@@ -6,7 +6,7 @@ export function Card({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) 
 }
 
 const badge = cva('inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold', {
-  variants: { tone: { neutral: 'bg-ink/5 text-ink', coral: 'bg-coral-soft text-coral-ink', lavender: 'bg-lavender text-lavender-ink', mint: 'bg-mint text-mint-ink', butter: 'bg-butter text-butter-ink', danger: 'bg-danger-soft text-danger', ink: 'bg-ink text-paper' } },
+  variants: { tone: { neutral: 'bg-ink/5 text-ink', coral: 'bg-coral-soft text-coral-ink', lavender: 'bg-lavender text-lavender-ink', mint: 'bg-mint text-mint-ink', butter: 'bg-butter text-butter-ink', danger: 'bg-danger-soft text-danger', ink: 'bg-ink text-paper', cobalt: 'bg-cobalt-ink text-white' } },
   defaultVariants: { tone: 'neutral' },
 });
 export function Badge({ tone, className, ...p }: React.HTMLAttributes<HTMLSpanElement> & VariantProps<typeof badge>) {

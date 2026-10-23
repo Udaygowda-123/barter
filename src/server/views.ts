@@ -17,7 +17,7 @@ export async function loadImages(listingIds: unknown[]) {
   return m;
 }
 
-const LITE_KEYS = new Set(['title', 'category', 'condition', 'estimatedValue', 'locationCity', 'locationRegion', 'status', 'isSeedData', 'cashFlexibility']);
+const LITE_KEYS = new Set(['title', 'category', 'condition', 'estimatedValue', 'locationCity', 'locationRegion', 'status', 'isSeedData', 'cashFlexibility', 'wantedText']);
 const imageLite = (i: ImageLean) => { const d = imageDto(i); return { id: d.id, position: d.position, isCover: d.isCover, aiEdited: d.aiEdited, altText: d.altText, url: d.url, thumbUrl: d.thumbUrl }; };
 
 /** Public listing shape: city/region only, never coordinates. `lite` (feeds/lists) trims descriptions and image fields to what cards need. */

@@ -3,14 +3,14 @@ import { audit } from './audit';
 import type { AuthUser } from './auth-core';
 import { withTx } from './db';
 import { bad, conflict, forbidden, notFound } from './http';
-import { AuditLog, Deal, Listing, ListingLock, Message, ProhibitedTerm, RefreshToken, Report, User } from './models';
+import { AuditLog, Conversation, Deal, Listing, ListingLock, Message, ProhibitedTerm, RefreshToken, Report, User } from './models';
 import { notify } from './notifications';
 import { closeOffersForListings } from './offers';
 import { sid, toId } from './util';
 
 export async function report(user: AuthUser, input: { targetType: 'LISTING' | 'USER' | 'MESSAGE'; targetId: string; reason: string; details?: string }) {
   const oid = (() => { try { return toId(input.targetId); } catch { return null; } })();
-  const exists = !oid ? false : input.targetType === 'LISTING' ? !!(await Listing.exists({ _id: oid })) : input.targetType === 'USER' ? !!(await User.exists({ _id: oid })) : !!(await Message.exists({ _id: oid }));
+  const exists = !oid ? false : input.targetType === 'LISTING' ? !!(await Listing.exists({ _id: oid })) : input.targetType === 'USER' ? !!(await User.exists({ _id: oid })) : await (async () => { const m = await Message.findById(oid).select('conversationId').lean(); return !!m && !!(await Conversation.exists({ _id: m.conversationId, 'members.userId': toId(user.id) })); })(); // you can only report messages you can see
   if (!exists) throw notFound('TARGET_NOT_FOUND', 'Nothing to report here');
   if (input.targetType === 'USER' && input.targetId === user.id) throw bad('SELF_REPORT', 'You cannot report yourself');
   const dup = await Report.findOne({ reporterId: toId(user.id), targetType: input.targetType, targetId: input.targetId, status: 'OPEN' }).lean();

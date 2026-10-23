@@ -1,6 +1,5 @@
-'use client';
-import { Categories, HowItWorks, MotionRoot, SwapShowcase, Trust } from './landing';
+import { Categories, HowItWorks, SwapShowcase, Trust } from './landing';
 
 export default function Sections() {
-  return <MotionRoot><HowItWorks /><SwapShowcase /><Categories /><Trust /></MotionRoot>;
+  return <><HowItWorks /><SwapShowcase /><Categories /><Trust /></>;
 }

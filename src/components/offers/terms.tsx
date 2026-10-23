@@ -13,7 +13,7 @@ export const sum = (items: { estimatedValue: number | null }[]) => items.reduce(
 
 export const STATUS_TEXT: Record<string, { label: string; tone: 'coral' | 'lavender' | 'mint' | 'butter' | 'danger' | 'neutral' }> = {
   PENDING: { label: 'Pending', tone: 'butter' }, COUNTERED: { label: 'Countered', tone: 'lavender' }, ACCEPTED: { label: 'Accepted', tone: 'mint' },
-  REJECTED: { label: 'Declined', tone: 'danger' }, WITHDRAWN: { label: 'Withdrawn', tone: 'neutral' }, EXPIRED: { label: 'Expired', tone: 'neutral' },
+  REJECTED: { label: 'Declined', tone: 'danger' }, WITHDRAWN: { label: 'Withdrawn', tone: 'neutral' }, EXPIRED: { label: 'Expired', tone: 'neutral' }, CANCELLED: { label: 'Cancelled', tone: 'neutral' },
 };
 export const OfferStatusBadge = ({ status }: { status: OfferStatus }) => <Badge tone={STATUS_TEXT[status].tone}>{STATUS_TEXT[status].label}</Badge>;
 
@@ -27,12 +27,12 @@ function ItemRow({ item }: { item: ListingBrief }) {
 }
 
 /** Read-only view of one revision's terms. `gives` is relative to who owns the items. */
-export function TermsSummary({ senderName, recipientName, offered, requested, cashAmount, cashPayerName, message }: { senderName: string; recipientName: string; offered: ListingBrief[]; requested: ListingBrief[]; cashAmount: number; cashPayerName?: string | null; message?: string | null }) {
+export function TermsSummary({ senderName, recipientName, offered, requested, cashAmount, cashPayerName, message, labels }: { labels?: { left: string; right: string }; senderName: string; recipientName: string; offered: ListingBrief[]; requested: ListingBrief[]; cashAmount: number; cashPayerName?: string | null; message?: string | null }) {
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
-        <div><p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">{senderName} gives</p>{offered.length ? <ul className="space-y-2">{offered.map((i) => <ItemRow key={i.id} item={i} />)}</ul> : <p className="rounded-2xl bg-paper p-3 text-sm text-muted">No items — cash only</p>}</div>
-        <div><p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">{recipientName} gives</p><ul className="space-y-2">{requested.map((i) => <ItemRow key={i.id} item={i} />)}</ul></div>
+        <div><p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">{labels?.left ?? `${senderName} gives`}</p>{offered.length ? <ul className="space-y-2">{offered.map((i) => <ItemRow key={i.id} item={i} />)}</ul> : <p className="rounded-2xl bg-paper p-3 text-sm text-muted">No items — cash only</p>}</div>
+        <div><p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted">{labels?.right ?? `${recipientName} gives`}</p><ul className="space-y-2">{requested.map((i) => <ItemRow key={i.id} item={i} />)}</ul></div>
       </div>
       {cashAmount > 0 && <p className="flex items-center gap-2 rounded-2xl bg-mint px-4 py-3 text-sm font-bold text-mint-ink"><Plus className="size-4" aria-hidden />{formatINR(cashAmount)} proposed{cashPayerName ? ` from ${cashPayerName}` : ''}</p>}
       {message && <p className="rounded-2xl bg-lavender/60 px-4 py-3 text-sm italic text-lavender-ink">“{message}”</p>}
@@ -83,6 +83,7 @@ export function TermsEditor({ state, onChange, givePool, getPool, giveTitle = 'Y
             {(['ME', 'THEM'] as const).map((w) => <button key={w} type="button" role="radio" aria-checked={state.payer === w} disabled={!state.cash} onClick={() => onChange({ ...state, payer: w })} className={cn('h-10 rounded-full disabled:opacity-50', state.payer === w && 'bg-surface shadow')}>{w === 'ME' ? 'I add cash' : 'They add cash'}</button>)}
           </div>
         </div>
+        {state.cash > 0 && <p className="rounded-2xl bg-mint px-4 py-3 text-sm font-semibold text-mint-ink" aria-live="polite">{state.payer === 'ME' ? 'You propose to add' : 'You ask them to add'} <b>{formatINR(state.cash)}</b> (INR). This is an agreed term only — SWAPD doesn&apos;t take or hold payments.</p>}
         {(giveTotal > 0 || getTotal > 0) && <p className="rounded-2xl bg-butter px-4 py-3 text-sm text-butter-ink" aria-live="polite">Owner estimates: you give ~{formatINR(giveTotal)} · you get ~{formatINR(getTotal)}{gap !== 0 && <> · gap ~{formatINR(Math.abs(gap))} ({gap > 0 ? 'you may add' : 'they may add'})</>}. {VALUE_DISCLAIMER}</p>}
       </fieldset>
       <Field label="Message (optional)">{(p) => <Textarea {...p} maxLength={500} value={state.message} onChange={(e) => onChange({ ...state, message: e.target.value })} className="min-h-20" placeholder="Say hi, suggest a meet-up spot…" />}</Field>

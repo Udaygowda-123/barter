@@ -72,12 +72,12 @@ export default function OfferPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div><div className="flex flex-wrap items-center gap-2"><OfferStatusBadge status={o.status} />{o.yourTurn && <Badge tone="coral">Your turn</Badge>}</div>
+      <div><div className="flex flex-wrap items-center gap-2"><OfferStatusBadge status={o.status} />{o.yourTurn && <Badge tone="cobalt">Your turn</Badge>}</div>
         <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">{o.targetListing.title}</h1>
         <p className="mt-1 text-muted">{o.sender.id === me ? `Your offer to ${o.recipient.displayName}` : `${o.sender.displayName} made you an offer`}{open && <span className="ml-2 inline-flex items-center gap-1 text-sm"><Clock className="size-3.5" aria-hidden />{timeLeft(o.expiresAt)}</span>}</p></div>
 
       {o.status === 'ACCEPTED' && o.deal && <Card className="flex flex-wrap items-center justify-between gap-3 border-mint bg-mint p-5 text-mint-ink"><p className="flex items-center gap-2 font-bold"><PartyPopper className="size-5" aria-hidden />Accepted — you&apos;re in a deal!</p><Button asChild variant="ink"><Link href={`/deals/${o.deal.id}`}>Open deal</Link></Button></Card>}
-      {['REJECTED', 'WITHDRAWN', 'EXPIRED'].includes(o.status) && <Card className="p-4 text-sm text-muted">This offer is closed ({o.status.toLowerCase()}). You can start a new one from the item page.</Card>}
+      {['REJECTED', 'WITHDRAWN', 'EXPIRED', 'CANCELLED'].includes(o.status) && <Card className="p-4 text-sm text-muted">{o.status === 'CANCELLED' ? 'This offer was cancelled automatically because an item in it is no longer available.' : `This offer is closed (${o.status.toLowerCase()}).`} You can start a new one from the item page.</Card>}
 
       <Card className="p-5 md:p-6">
         <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-black">Current terms <span className="text-sm font-semibold text-muted">· version {latest.number}</span></h2>{o.conversationId && <Button asChild variant="soft" size="sm"><Link href={`/messages/${o.conversationId}`}><MessageCircle className="size-4" aria-hidden />Chat</Link></Button>}</div>
@@ -109,7 +109,7 @@ export default function OfferPage() {
       </Dialog>
       <Dialog open={action === 'counter'} onOpenChange={(v) => !v && setAction(null)} title="Counter with new terms" description="This creates a new version. Nothing is agreed until the other person accepts it." className="md:max-w-2xl">
         {pools.isError ? <ErrorState onRetry={() => pools.refetch()} /> : !pools.data || !terms ? <div className="space-y-3"><Skeleton className="h-32" /><Skeleton className="h-32" /></div> : (<>
-          <TermsEditor state={terms} onChange={setTerms} getTitle={`What you get (${iAmSender ? o.recipient.displayName : o.sender.displayName}'s items)`} giveTitle="What you give (your items)" getPool={iAmSender ? pools.data.recipient : pools.data.sender} givePool={iAmSender ? pools.data.sender : pools.data.recipient} error={counterError} />
+          <TermsEditor state={terms} onChange={setTerms} getTitle={`You want — ${iAmSender ? o.recipient.displayName : o.sender.displayName}'s items`} giveTitle="You're offering — your items" getPool={iAmSender ? pools.data.recipient : pools.data.sender} givePool={iAmSender ? pools.data.sender : pools.data.recipient} error={counterError} />
           <div className="mt-6 flex justify-end gap-2"><Button variant="ghost" onClick={() => setAction(null)}>Cancel</Button><Button disabled={!counterValid} loading={run.isPending} onClick={() => run.mutate('counter')}>Send counteroffer</Button></div>
         </>)}
       </Dialog>

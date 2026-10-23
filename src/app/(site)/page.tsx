@@ -1,9 +1,6 @@
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { Hero } from '@/components/landing-hero';
-
-// Below-the-fold sections (animation library) load as a separate chunk after the hero is already painted.
-const Sections = dynamic(() => import('@/components/landing-sections'));
+import Sections from '@/components/landing-sections';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 
@@ -12,15 +9,15 @@ export default function Landing() {
     <>
       <header className="absolute inset-x-0 top-0 z-30">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:h-20 md:px-8">
-          <Logo />
-          <nav aria-label="Account" className="flex items-center gap-1 sm:gap-2">
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><Link href="/discover">Browse</Link></Button>
-            <Button asChild variant="ghost" size="sm"><Link href="/login">Sign in</Link></Button>
+          <Logo className="text-paper" />
+          <nav aria-label="Account" className="on-ink flex items-center gap-1 sm:gap-2">
+            <Button asChild variant="ghost" size="sm" className="hidden text-paper hover:bg-white/10 sm:inline-flex"><Link href="/discover">Browse</Link></Button>
+            <Button asChild variant="ghost" size="sm" className="text-paper hover:bg-white/10"><Link href="/login">Sign in</Link></Button>
             <Button asChild size="sm"><Link href="/register">Join free</Link></Button>
           </nav>
         </div>
       </header>
-      <main id="main"><div className="pt-16"><Hero /></div><Sections /></main>
+      <main id="main"><Hero /><Sections /></main>
       <footer className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-10 text-sm text-muted md:px-8">
         <Logo className="text-ink" />
         <p className="max-w-xl">SWAPD does not transfer money, hold funds in escrow, or guarantee item values. Estimated values are set by owners and are not appraisals. Demo photos: Wikimedia Commons contributors, open licences (credits in the repo).</p>

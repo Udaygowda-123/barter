@@ -1,7 +1,7 @@
 'use client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CASH_FLEXIBILITY, CATEGORY_LABELS, CONDITION_LABELS, VALUE_DISCLAIMER } from '@/shared/types';
-import { ArrowLeftRight, BadgeCheck, Flag, Heart, MapPin, Pencil, ShieldAlert, Trash2, Truck, Users } from 'lucide-react';
+import { ArrowLeftRight, BadgeCheck, Clock, Flag, Heart, MapPin, Pencil, ShieldAlert, Trash2, Truck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -18,7 +18,7 @@ import { useAuth } from '@/lib/auth';
 import { cardSeed } from '@/lib/seed';
 import { formatINR, timeAgo } from '@/lib/format';
 import { useToast } from '@/lib/toast';
-import type { Listing } from '@/lib/types';
+import type { Listing, PublicProfile } from '@/lib/types';
 
 const CASH_TEXT: Record<(typeof CASH_FLEXIBILITY)[number], string> = { NONE: 'Prefers a straight swap', WILL_ADD: 'Happy to add cash', WILL_ACCEPT: 'Happy to take cash on top', EITHER: 'Open to cash either way' };
 
@@ -64,9 +64,10 @@ export default function ListingClient({ id, initial }: { id: string; initial: Li
         <div className="space-y-6">
           <header>
             <div className="flex flex-wrap items-center gap-2"><Badge tone="lavender">{CATEGORY_LABELS[l.category]}</Badge><Badge>{CONDITION_LABELS[l.condition]}</Badge><StatusBadge status={l.status} />{l.isSeedData && <Badge tone="ink">Demo listing</Badge>}</div>
-            <h1 className="mt-3 text-4xl font-black leading-[1.05] tracking-tight md:text-6xl">{l.title}</h1>
+            <h1 className="mt-3 text-4xl font-extrabold leading-[1.02] md:text-6xl">{l.title}</h1>
             <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-muted"><span className="flex items-center gap-1.5"><MapPin className="size-4" aria-hidden />{place || 'Location not shared'}</span><span>Listed {timeAgo(l.createdAt)}</span><span>{l.images.length} photo{l.images.length === 1 ? '' : 's'}</span></p>
           </header>
+          {!available && <p role="status" className="flex items-center gap-2 rounded-2xl bg-butter px-4 py-3 text-sm font-medium text-butter-ink"><Clock className="size-4 shrink-0" aria-hidden />{l.status === 'RESERVED' ? 'Reserved — this item is part of an agreed swap right now.' : l.status === 'EXCHANGED' ? 'Already swapped — this one found a new home.' : 'Not available for offers right now.'}</p>}
 
           {/* Hinge-style prompt cards */}
           <section aria-label="Item details" className="grid gap-4 sm:grid-cols-2">
@@ -79,7 +80,7 @@ export default function ListingClient({ id, initial }: { id: string; initial: Li
 
           <Card className="flex items-center gap-4 p-5">
             <Avatar name={l.owner.displayName} src={l.owner.avatarUrl} size={56} />
-            <div className="min-w-0 flex-1"><p className="flex items-center gap-1.5 text-lg font-bold"><Link href={`/u/${l.owner.id}`} className="truncate hover:underline">{l.owner.displayName}</Link>{l.owner.verified && <BadgeCheck className="size-4 text-mint-ink" aria-label="Verified email" />}</p><p className="text-sm text-muted">{l.owner.locationCity ?? 'Location not shared'} · approximate area only</p></div>
+            <div className="min-w-0 flex-1"><p className="flex items-center gap-1.5 text-lg font-bold"><Link href={`/u/${l.owner.id}`} className="truncate hover:underline">{l.owner.displayName}</Link>{l.owner.verified && <BadgeCheck className="size-4 text-mint-ink" aria-label="Verified email" />}</p><p className="text-sm text-muted">{l.owner.locationCity ?? 'Location not shared'} · approximate area only</p><OwnerStats id={l.owner.id} /></div>
             <Button asChild variant="soft" size="sm"><Link href={`/u/${l.owner.id}`}>View profile</Link></Button>
           </Card>
         </div>
@@ -111,4 +112,11 @@ export default function ListingClient({ id, initial }: { id: string; initial: Li
       {void user}
     </div>
   );
+}
+
+function OwnerStats({ id }: { id: string }) {
+  const q = useQuery({ queryKey: ['profile', id], queryFn: () => api<PublicProfile>(`/users/${id}`), staleTime: 60_000 });
+  const st = q.data?.stats; if (!st) return null;
+  const bits = [`${st.completedSwaps} swap${st.completedSwaps === 1 ? '' : 's'} completed`, st.averageRating != null ? `★ ${st.averageRating.toFixed(1)} (${st.reviewCount})` : 'No reviews yet'];
+  return <p className="mt-1 text-xs font-semibold text-ink/80">{bits.join(' · ')}</p>;
 }
