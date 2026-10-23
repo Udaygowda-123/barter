@@ -1,4 +1,4 @@
-import { acceptOfferSchema, cancelDealSchema, counterOfferSchema, createListingSchema, createOfferSchema, createReportSchema, createReviewSchema, disputeDealSchema, enhanceSchema, forgotPasswordSchema, handoverSchema, listingQuerySchema, loginSchema, offerActionSchema, prohibitedTermSchema, refreshSchema, registerSchema, resetPasswordSchema, resolveReportSchema, restoreSchema, sendMessageSchema, updateListingSchema, updateProfileSchema } from '@/shared/validation';
+import { acceptOfferSchema, changePasswordSchema, verifyEmailSchema, cancelDealSchema, counterOfferSchema, createListingSchema, createOfferSchema, createReportSchema, createReviewSchema, disputeDealSchema, enhanceSchema, forgotPasswordSchema, handoverSchema, listingQuerySchema, loginSchema, offerActionSchema, prohibitedTermSchema, refreshSchema, registerSchema, resetPasswordSchema, resolveReportSchema, restoreSchema, sendMessageSchema, updateListingSchema, updateProfileSchema } from '@/shared/validation';
 import { z } from 'zod';
 import * as auth from './auth';
 import { clearRefreshCookie, clientIp, rateLimit, readCookie, setRefreshCookie } from './auth-core';
@@ -21,7 +21,7 @@ const noContent = () => reply(null, 204);
 const offersQuery = z.object({ box: z.enum(['sent', 'received', 'all']).default('all'), status: z.enum(['PENDING', 'COUNTERED', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED']).optional(), cursor: z.string().optional(), limit: z.coerce.number().int().min(1).max(50).default(20) });
 const statusQuery = z.object({ status: z.enum(['OPEN', 'RESOLVED', 'DISMISSED']).default('OPEN') });
 const resolveDealSchema = z.object({ outcome: z.enum(['COMPLETED', 'CANCELLED']), note: z.string().trim().max(500).optional() });
-const AUTH_LIMIT = 10;
+const AUTH_LIMIT = 20;
 
 // ───────── health ─────────
 addPublic('GET', '/health', async () => { await connectDb(); return { status: 'ok', db: 'connected' }; });
@@ -43,6 +43,9 @@ addPublic('POST', '/auth/forgot-password', async (c) => {
   const token = await auth.forgotPassword(parse(forgotPasswordSchema, await c.json()).email);
   return env.nodeEnv === 'test' ? { ok: true, devToken: token } : { ok: true }; // same response whether or not the account exists
 });
+addPublic('POST', '/auth/verify-email', async (c) => auth.verifyEmail(parse(verifyEmailSchema, await c.json()).token));
+add('POST', '/auth/resend-verification', 'user', (c) => auth.resendVerification(c.user.id));
+add('POST', '/auth/change-password', 'user', async (c) => { await rateLimit(`pw:${c.user.id}`, 5, 600); const b = parse(changePasswordSchema, await c.json()); await auth.changePassword(c.user.id, b.currentPassword, b.newPassword); return reply(null, 204, { cookies: [clearRefreshCookie()] }); });
 addPublic('POST', '/auth/reset-password', async (c) => { await rateLimit(`auth:${clientIp(c.req)}`, AUTH_LIMIT, 60); const b = parse(resetPasswordSchema, await c.json()); await auth.resetPassword(b.token, b.password); return noContent(); });
 
 // ───────── users ─────────

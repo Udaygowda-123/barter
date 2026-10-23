@@ -15,7 +15,7 @@ export default function ForgotPage() {
   if (sent) return (
     <div role="status"><h1 className="text-4xl font-black tracking-tight">Check your email</h1>
       <p className="mt-3 text-muted">If an account exists for that address, a reset link is on its way. The link expires in an hour.</p>
-      <p className="mt-4 rounded-2xl bg-butter p-4 text-sm text-butter-ink">Local development: no email service is connected yet, so the reset link is printed in the API server log.</p>
+      <p className="mt-2 text-sm text-muted">Nothing arrived? Check spam, or wait a minute and request again (limit: 3 per hour).</p>
       <Button asChild variant="outline" className="mt-6"><Link href="/login">Back to sign in</Link></Button></div>
   );
   return (

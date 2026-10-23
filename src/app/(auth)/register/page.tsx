@@ -10,11 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/form';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useToast } from '@/lib/toast';
 
 type Values = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const { register: signUp } = useAuth(); const router = useRouter();
+  const { register: signUp } = useAuth(); const router = useRouter(); const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
   const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<Values>({ resolver: zodResolver(registerSchema) });
 
@@ -24,7 +25,7 @@ export default function RegisterPage() {
       <p className="mt-2 text-muted">Free. We only ask for what we need.</p>
       <form className="mt-8 space-y-5" noValidate onSubmit={handleSubmit(async (v) => {
         setFormError(null);
-        try { await signUp(v); router.replace('/onboarding'); }
+        try { await signUp(v); toast.info(`We sent a verification link to ${v.email}`); router.replace('/onboarding'); }
         catch (e) {
           if (e instanceof ApiError) {
             if (e.code === 'EMAIL_TAKEN') setError('email', { message: 'An account with this email already exists' });

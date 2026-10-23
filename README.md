@@ -27,6 +27,16 @@ Demo logins (after seeding): `maya@swapd.demo`, `arjun@swapd.demo`, `zoya@swapd.
 2. **Environment variables:** `MONGODB_URI`, `JWT_ACCESS_SECRET` (32+ random chars), and `BLOB_READ_WRITE_TOKEN` (Storage → Blob → create store; needed for photo uploads in production).
 3. In MongoDB Atlas → Network Access, allow `0.0.0.0/0` (Vercel IPs change).
 
+## Auth & email
+Email + password sign-up, sign-in with rotating refresh tokens, **email verification** (link emailed on sign-up; the profile gets a verified badge), **forgot password** (one-time link, 1 h expiry, only the newest link works, all sessions signed out after a reset), and **change password**. Reset requests are rate-limited (3 per hour per address) and answer identically for unknown addresses.
+
+Emails go through, in order: `RESEND_API_KEY` → `SMTP_*` → console (dev only). Easiest free setup — Gmail:
+1. Google Account → Security → turn on **2-Step Verification**, then **App passwords** → create one for "Mail".
+2. Set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER=you@gmail.com`, `SMTP_PASS=<app password>`, `MAIL_FROM="SWAPD <you@gmail.com>"`.
+3. Set `APP_URL` to your site's public URL (links in emails use it, never request headers). On Vercel add all of these under Environment Variables and redeploy.
+
+Gmail limits you to ~500 emails/day, which is fine for a prototype. For a real launch use a domain + Resend/SES so mail doesn't land in spam.
+
 ## Performance & caching
 - **Server-rendered, cached pages:** item pages (`/listing/[id]`, ISR 60 s, with share-preview metadata) and the first screen of `/discover` (ISR 30 s). The landing hero is server-rendered with CSS-only motion; animated sections load lazily.
 - **Debugging:** in `pnpm dev` pages fetch their data from the browser, so every `/api/v1/...` call shows in DevTools → Network (Fetch/XHR). Server-rendered first loads only apply to production builds.
@@ -40,5 +50,4 @@ Demo logins (after seeding): `maya@swapd.demo`, `arjun@swapd.demo`, `zoya@swapd.
 - Chat/notifications update by polling (every 4–10 s) — serverless has no WebSockets.
 - Photos are enhanced (light/colour/framing, never retouching defects) on upload; originals are kept.
 - Offers expire lazily when read; no cron needed.
-- Password-reset emails aren't sent yet (the token is logged in dev).
 - Cash is only ever a proposal — SWAPD doesn't move money.

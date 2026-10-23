@@ -1,11 +1,14 @@
 'use client';
 import * as Menu from '@radix-ui/react-dropdown-menu';
-import { Bell, Compass, Heart, Inbox, LogOut, MessageCircle, Plus, Shield, User } from 'lucide-react';
+import { Bell, Compass, Heart, Inbox, LogOut, MailCheck, MessageCircle, Plus, Shield, User, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/primitives';
+import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useToast } from '@/lib/toast';
 import { usePulse } from '@/lib/pulse';
 import { cn } from '@/lib/utils';
 import { Logo } from './logo';
@@ -16,6 +19,22 @@ function useCounts() {
 }
 
 const Count = ({ n }: { n: number }) => n > 0 ? <span className="absolute -right-1.5 -top-1 flex min-w-5 items-center justify-center rounded-full bg-coral px-1 text-[11px] font-bold leading-5 text-ink" aria-label={`${n} unread`}>{n > 99 ? '99+' : n}</span> : null;
+
+function VerifyBanner() {
+  const { user } = useAuth(); const toast = useToast(); const [hidden, setHidden] = useState(true); const [busy, setBusy] = useState(false);
+  useEffect(() => { try { setHidden(sessionStorage.getItem('swapd:verify-dismissed') === '1'); } catch { setHidden(false); } }, []);
+  if (!user || user.emailVerifiedAt || hidden) return null;
+  async function resend() { setBusy(true); try { await api('/auth/resend-verification', { method: 'POST', body: {} }); toast.success(`Verification link sent to ${user!.email}`); } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Could not send the email'); } finally { setBusy(false); } }
+  return (
+    <div role="region" aria-label="Verify your email" className="border-b border-butter-ink/15 bg-butter">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 text-sm text-butter-ink md:px-8">
+        <MailCheck className="size-4 shrink-0" aria-hidden /><p className="min-w-0 flex-1">Verify your email to build trust — we sent a link to <b className="break-all">{user.email}</b>.</p>
+        <button onClick={resend} disabled={busy} className="shrink-0 rounded-full px-3 py-2 font-bold underline disabled:opacity-50">{busy ? 'Sending…' : 'Resend'}</button>
+        <button onClick={() => { try { sessionStorage.setItem('swapd:verify-dismissed', '1'); } catch { /* ignore */ } setHidden(true); }} aria-label="Dismiss" className="flex size-9 shrink-0 items-center justify-center rounded-full hover:bg-butter-ink/10"><X className="size-4" aria-hidden /></button>
+      </div>
+    </div>
+  );
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, status, logout } = useAuth(); const path = usePathname(); const router = useRouter(); const counts = useCounts();
@@ -64,6 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
+      <VerifyBanner />
       <main id="main" className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-10">{children}</main>
 
       {/* Mobile bottom navigation: touch-friendly targets */}

@@ -46,7 +46,7 @@ export interface ConversationSummary {
 }
 export interface NotificationDto { id: string; type: string; payload: Record<string, unknown>; readAt: string | null; createdAt: string }
 export interface Me {
-  id: string; email: string; displayName: string; bio: string | null; avatarUrl: string | null; role: 'USER' | 'MODERATOR' | 'ADMIN'; status: string;
+  id: string; email: string; displayName: string; bio: string | null; avatarUrl: string | null; role: 'USER' | 'MODERATOR' | 'ADMIN'; status: string; emailVerifiedAt: string | null;
   locationCity: string | null; locationRegion: string | null; locationLat: number | null; locationLng: number | null;
   preference: { interests: string[]; wantedCategories: Category[]; locationConsent: boolean; maxDistanceKm: number | null; onboardedAt: string | null } | null;
 }

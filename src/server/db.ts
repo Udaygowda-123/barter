@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 /** Bump when indexes change; connect() syncs indexes once and records the version, so cold starts cost one tiny read. */
-const INDEX_VERSION = 3;
+const INDEX_VERSION = 4;
 type Cache = { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null };
 const g = globalThis as unknown as { __mongo?: Cache };
 const cache = (g.__mongo ??= { conn: null, promise: null });

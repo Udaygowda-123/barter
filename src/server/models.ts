@@ -78,6 +78,10 @@ export const Deal = model('Deal', new Schema<any>({
 /** One row per listing locked by an active deal. The unique index is the database-level "no two active deals per item" guarantee. */
 export const ListingLock = model('ListingLock', new Schema<any>({ listingId: { type: oid, unique: true }, dealId: oid }));
 
+export const EmailVerifyToken = model('EmailVerifyToken', new Schema<any>({
+  userId: { type: oid, index: true }, tokenHash: { type: String, unique: true }, expiresAt: { type: Date, index: { expires: 0 } }, usedAt: { type: Date, default: null },
+}));
+
 export const Review = model('Review', new Schema<any>({
   dealId: oid, authorId: oid, subjectId: { type: oid, index: true }, rating: { type: Number, min: 1, max: 5 }, body: { type: String, default: null }, createdAt: { type: Date, default: now },
 }).index({ dealId: 1, authorId: 1 }, { unique: true }));
