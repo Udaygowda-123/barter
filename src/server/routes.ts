@@ -24,7 +24,7 @@ const resolveDealSchema = z.object({ outcome: z.enum(['COMPLETED', 'CANCELLED'])
 const AUTH_LIMIT = 10;
 
 // ───────── health ─────────
-addPublic('GET', '/health', async () => { await connectDb(); return { status: 'ok' }; });
+addPublic('GET', '/health', async () => { await connectDb(); return { status: 'ok', db: 'connected' }; });
 
 // ───────── auth ─────────
 const session = (r: Awaited<ReturnType<typeof auth.login>>) => reply(r, 200, { cookies: [setRefreshCookie(r.refreshToken)] });

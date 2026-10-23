@@ -40,8 +40,18 @@ function mapError(e: unknown): Response {
   if (err?.name === 'CastError') return errorResponse(404, 'NOT_FOUND', 'Not found');
   if (err?.code === 11000) return errorResponse(409, 'CONFLICT', 'That already exists or conflicts with current state');
   if (err?.errorLabelSet?.has('TransientTransactionError') || /WriteConflict|write conflict/i.test(err?.message ?? '')) return errorResponse(409, 'CONFLICT', 'Please retry — the data changed at the same moment');
+  const name = err?.name ?? ''; const msg = err?.message ?? '';
+  if (/ServerSelection|MongoNetwork|MongooseServerSelection/i.test(name) || /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|timed out/i.test(msg)) {
+    console.error('[api] database unreachable:', name, msg.slice(0, 300));
+    return errorResponse(503, 'DB_UNREACHABLE', 'Cannot reach MongoDB. In Atlas → Network Access allow 0.0.0.0/0 (Vercel IPs change), and check MONGODB_URI.');
+  }
+  if (/bad auth|Authentication failed|AuthenticationFailed/i.test(msg)) {
+    console.error('[api] database auth failed');
+    return errorResponse(503, 'DB_AUTH_FAILED', 'MongoDB rejected the username/password in MONGODB_URI.');
+  }
+  if (/MONGODB_URI is not set|JWT_ACCESS_SECRET must/i.test(msg)) return errorResponse(500, 'CONFIG_MISSING', msg);
   console.error('[api]', e);
-  return errorResponse(500, 'INTERNAL', 'Something went wrong');
+  return errorResponse(500, 'INTERNAL', 'Something went wrong', process.env.DEBUG_API_ERRORS === '1' ? [{ path: err?.name ?? 'Error', message: msg.slice(0, 300) }] : undefined);
 }
 
 /** The whole API as `Request → Response`, so it is used by the Next route handler and called directly in tests. */
