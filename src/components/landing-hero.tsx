@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PHOTOS, type Photo } from './landing-data';
 import { HeroVideo } from './landing/hero-video';
+import { FlipDeck } from './landing/flip-card';
 import { SwapOrbit } from './landing/swap-orbit';
 
 /**
@@ -41,7 +42,7 @@ export function Hero() {
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(100deg,rgb(16_14_22/.95)_0%,rgb(16_14_22/.86)_45%,rgb(16_14_22/.6)_75%,rgb(16_14_22/.72)_100%)]" />
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-t from-night to-transparent" />
 
-        <div className="mx-auto grid min-h-[min(100svh,58rem)] max-w-7xl items-center gap-8 px-5 pb-16 pt-28 md:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:pb-24 lg:pt-32">
+        <div className="mx-auto grid min-h-[min(100svh,58rem)] max-w-7xl items-center gap-8 px-5 pb-14 pt-24 md:px-8 md:pt-28 lg:grid-cols-[1.1fr_0.9fr] lg:pb-24 lg:pt-32">
           <div className="on-ink">
             <p className="rise inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-violet ring-1 ring-white/15 backdrop-blur"><Sparkles className="size-4" aria-hidden />Free peer-to-peer swapping</p>
             <h1 id="hero-title" className="rise mt-6 max-w-[13ch] text-[2.75rem] font-extrabold leading-[0.98] [--d:.06s] sm:text-6xl lg:text-[4.4rem] xl:text-[5rem]">
@@ -52,9 +53,10 @@ export function Hero() {
               <Button asChild size="lg"><Link href="/discover">Explore the marketplace</Link></Button>
               <Button asChild size="lg" variant="light"><Link href="/listing/new">List your first item</Link></Button>
             </div>
+            <div className="rise mt-10 [--d:.26s] lg:hidden"><FlipDeck /></div>
             <ul className="rise mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-paper/75 [--d:.3s]">{['Free to use', 'No payments handled by SWAPD', 'Originals always kept'].map((t) => <li key={t} className="flex items-center gap-1.5"><BadgeCheck className="size-4 text-mint" aria-hidden />{t}</li>)}</ul>
           </div>
-          <div className="rise [--d:.2s]"><SwapOrbit /></div>
+          <div className="rise hidden [--d:.2s] lg:block"><SwapOrbit /></div>
         </div>
       </section>
 

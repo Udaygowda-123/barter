@@ -1,12 +1,8 @@
 'use client';
 import { ArrowLeftRight } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { FlipCard, SWAP_PAIRS } from './flip-card';
 
-const ITEMS = [
-  { src: '/demo/thumb/sneakers-1.webp', label: 'Sneakers' },
-  { src: '/demo/thumb/headphones-1.webp', label: 'Headphones' },
-  { src: '/demo/thumb/camera-0.webp', label: 'Film camera' },
-];
 const TURN_MS = 26_000;   // one full revolution
 const RATIO = 0.78;       // ellipse height / width — reads as an orbit seen from slightly above
 const BACK_SCALE = 0.8;   // card scale at the far side of the orbit
@@ -47,6 +43,26 @@ function solve(w: number): Geo {
   return g;
 }
 
+/** Card flip (deg) for orbit position: front face on the near half, back face (the swap) on the far half; turns at the sides. */
+function flipAt(deg: number, i: number) {
+  const x = 2 * ((((deg + i * 120) % 360) + 360) % 360) / 360; const f = x % 1;
+  const t = Math.min(Math.max((f - 0.3) / 0.4, 0), 1);
+  return 180 * (Math.floor(x) + t * t * (3 - 2 * t));
+}
+
+function cardStyle(g: Geo, deg: number, i: number): React.CSSProperties {
+  const p = place(g, deg, i);
+  return {
+    width: g.cw,
+    transform: `translate(-50%, -50%) translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0) scale(${p.s.toFixed(3)})`,
+    // Token sits at z 100: near half of the orbit stacks above it, far half below; ties never overlap (see solve()).
+    zIndex: Math.round(100 + p.d * 99 + (p.d >= 0 ? 1 : -1)),
+    filter: `brightness(${(0.72 + 0.28 * ((p.d + 1) / 2)).toFixed(3)})`,
+  };
+}
+// Server-rendered starting frame (typical desktop column width) so the orbit is in the first paint, before hydration.
+const SSR = solve(520);
+
 /**
  * The hero's "3D" moment: three real demo items orbit a swap token. Positions are computed every frame on an
  * ellipse (2.5D: scale + explicit stacking), so cards pass cleanly in front of / behind the token — never through it —
@@ -63,6 +79,7 @@ export function SwapOrbit() {
     let g = solve(el.clientWidth); let angle = 0; let last = 0; let raf = 0; let onScreen = true;
 
     const layout = () => {
+      if (el.clientWidth < 200) return; // hidden (display:none below lg)
       g = solve(el.clientWidth);
       el.style.height = `${Math.ceil(2 * g.ry + g.ch + 8)}px`;
       Object.assign(ring.current!.style, { width: `${2 * g.rx}px`, height: `${2 * g.ry}px` });
@@ -71,11 +88,9 @@ export function SwapOrbit() {
       draw();
     };
     const draw = () => cards.current.forEach((c, i) => {
-      if (!c) return; const p = place(g, angle, i);
-      c.style.transform = `translate(-50%, -50%) translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0) scale(${p.s.toFixed(3)})`;
-      // Token sits at z 100: near half of the orbit stacks above it, far half below; ties never overlap (see solve()).
-      c.style.zIndex = String(Math.round(100 + p.d * 99 + (p.d >= 0 ? 1 : -1)));
-      c.style.filter = `brightness(${(0.72 + 0.28 * ((p.d + 1) / 2)).toFixed(3)})`;
+      if (!c) return; const st = cardStyle(g, angle, i);
+      c.style.transform = st.transform as string; c.style.zIndex = String(st.zIndex); c.style.filter = st.filter as string;
+      (c.firstElementChild!.firstElementChild as HTMLElement).style.transform = `rotateY(${flipAt(angle, i).toFixed(1)}deg)`;
     });
     const tick = (t: number) => {
       if (last) angle = (angle + (Math.min(t - last, 50) / TURN_MS) * 360) % 360; // cap dt so a stalled frame doesn't jump
@@ -83,7 +98,7 @@ export function SwapOrbit() {
     };
     const run = () => { cancelAnimationFrame(raf); last = 0; if (!reduce && onScreen && !document.hidden) raf = requestAnimationFrame(tick); };
 
-    layout(); el.dataset.ready = 'true';
+    layout();
     const ro = new ResizeObserver(layout); ro.observe(el);
     const io = new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; run(); }); io.observe(el);
     document.addEventListener('visibilitychange', run);
@@ -92,14 +107,13 @@ export function SwapOrbit() {
   }, []);
 
   return (
-    <div ref={root} className="orbit-scene" aria-hidden>
-      <div ref={ring} className="orbit-ring" />
-      <div ref={core} className="orbit-core"><ArrowLeftRight className="size-[45%]" strokeWidth={2.5} /></div>
-      {ITEMS.map((it, i) => (
-        <figure key={it.label} ref={(n) => { cards.current[i] = n; }} className="orbit-card rounded-2xl bg-white p-1.5 shadow-[0_24px_50px_-20px_rgb(0_0_0/0.6)] ring-1 ring-white/40">
-          <img src={it.src} alt="" width={480} height={600} decoding="async" className="aspect-[4/5] w-full rounded-xl object-cover" />
-          <figcaption className="orbit-caption h-[22px] truncate px-1 pt-1.5 text-[11px] font-bold leading-none text-ink sm:text-xs">{it.label}</figcaption>
-        </figure>
+    <div ref={root} className="orbit-scene" aria-hidden style={{ height: Math.ceil(2 * SSR.ry + SSR.ch + 8) }}>
+      <div ref={ring} className="orbit-ring" style={{ width: 2 * SSR.rx, height: 2 * SSR.ry }} />
+      <div ref={core} className="orbit-core" style={{ width: 2 * SSR.cr, height: 2 * SSR.cr }}><ArrowLeftRight className="size-[45%]" strokeWidth={2.5} /></div>
+      {SWAP_PAIRS.map((pair, i) => (
+        <div key={pair.a.label} ref={(n) => { cards.current[i] = n; }} className="orbit-card" data-caption="true" style={cardStyle(SSR, 0, i)}>
+          <FlipCard pair={pair} rotate={flipAt(0, i)} />
+        </div>
       ))}
     </div>
   );

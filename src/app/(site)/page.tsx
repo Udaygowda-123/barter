@@ -1,9 +1,6 @@
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { Hero } from '@/components/landing-hero';
-
-// Below-the-fold sections (animation library) load as a separate chunk after the hero is already painted.
-const Sections = dynamic(() => import('@/components/landing-sections'));
+import Sections from '@/components/landing-sections';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 

@@ -114,9 +114,25 @@ button, a, [role='button'], summary, label { touch-action: manipulation; }
 .orbit-ring { z-index: 0; transform: translate(-50%, -50%); border-radius: 50%; border: 2px dashed rgb(205 184 255 / .5); }
 .orbit-core { z-index: 100; display: flex; width: 5.5rem; height: 5.5rem; transform: translate(-50%, -50%); align-items: center; justify-content: center; border-radius: 999px; color: var(--color-ink);
   background: radial-gradient(circle at 32% 28%, #ffd2c8 0%, var(--color-coral) 45%, #e8523a 100%); box-shadow: inset -10px -14px 24px rgb(0 0 0 / .18), 0 30px 60px -18px rgb(255 118 94 / .7); }
-.orbit-card { margin: 0; width: 8rem; will-change: transform; opacity: 0; transition: opacity .5s ease-out; }
-.orbit-scene[data-ready] .orbit-card { opacity: 1; }
+.orbit-card { width: 8rem; will-change: transform; }
 .orbit-card[data-caption='false'] .orbit-caption { display: none; }
+
+/* Two-sided swap card: the flip lives inside the card (own perspective), never shared with neighbours */
+.flip { perspective: 900px; }
+.flip-inner { position: relative; transform-style: preserve-3d; will-change: transform; }
+.flip-face { margin: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-back { position: absolute; inset: 0; transform: rotateY(180deg); }
+/* Mobile deck: rest on the item, flip to its swap, rest, flip forward again (always the same direction) */
+@keyframes flip-cycle { 0%, 34% { transform: rotateY(0deg); } 46%, 80% { transform: rotateY(180deg); } 92%, 100% { transform: rotateY(360deg); } }
+.flip-auto .flip-inner { animation: flip-cycle 6.6s cubic-bezier(.65, 0, .35, 1) infinite; animation-delay: var(--fd, 0s); }
+
+/* Scroll reveal without JavaScript: content is visible in the server HTML; supporting browsers animate it in as it
+   enters the viewport (scroll-driven animation). No support / reduced motion → simply visible. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% entry 30%; }
+  }
+}
 
 /* Profile cover accent (decorative) */
 .profile-cover { background:
