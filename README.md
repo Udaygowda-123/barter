@@ -29,6 +29,7 @@ Demo logins (after seeding): `maya@swapd.demo`, `arjun@swapd.demo`, `zoya@swapd.
 
 ## Performance & caching
 - **Server-rendered, cached pages:** item pages (`/listing/[id]`, ISR 60 s, with share-preview metadata) and the first screen of `/discover` (ISR 30 s). The landing hero is server-rendered with CSS-only motion; animated sections load lazily.
+- **Debugging:** in `pnpm dev` pages fetch their data from the browser, so every `/api/v1/...` call shows in DevTools → Network (Fetch/XHR). Server-rendered first loads only apply to production builds.
 - **API caching:** anonymous reads of public data (`?public=1`, added automatically by the client when signed out) send `s-maxage=30, stale-while-revalidate=300`; everything personalised is `private, no-store`. Static demo photos are `immutable`.
 - **Lean payloads:** feeds return only what cards need (≈25 % smaller); `/auth/*` returns the user, saving a round trip; one 15 s `/pulse` request drives badges and toasts; open chat threads fetch only messages newer than the last one (`?after=`).
 - **Database:** indexes are synced once per schema version (`INDEX_VERSION` in `src/server/db.ts`) because Mongoose auto-indexing is off in production; small connection pool for serverless.

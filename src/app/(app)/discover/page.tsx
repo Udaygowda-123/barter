@@ -10,4 +10,7 @@ async function firstPage(): Promise<Page<Listing> | null> {
   try { await connectDb(); return JSON.parse(JSON.stringify(await discover({ limit: 20 } as never, undefined))) as Page<Listing>; } catch { return null; }
 }
 
-export default async function Page() { return <DiscoverClient initialFeed={await firstPage()} />; }
+// In `pnpm dev` the feed is fetched from the browser instead, so every API call is visible in the Network tab.
+const DEV = process.env.NODE_ENV !== 'production';
+
+export default async function Page() { return <DiscoverClient initialFeed={DEV ? null : await firstPage()} />; }

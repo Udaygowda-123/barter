@@ -22,5 +22,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <ListingClient id={id} initial={await load(id)} />;
+  // In `pnpm dev` the item is fetched from the browser instead, so the API call is visible in the Network tab.
+  return <ListingClient id={id} initial={process.env.NODE_ENV === 'production' ? await load(id) : null} />;
 }
