@@ -28,8 +28,10 @@ async function cloudinaryPut(key: string, body: Buffer): Promise<string> {
   return j.secure_url;
 }
 
+const cloudinaryConfigured = () => !!process.env.CLOUDINARY_URL && !/PASTE_|your_api|[<>]/.test(process.env.CLOUDINARY_URL);
+
 export async function put(key: string, body: Buffer, contentType: string): Promise<string> {
-  if (process.env.CLOUDINARY_URL) return cloudinaryPut(key, body);
+  if (cloudinaryConfigured()) return cloudinaryPut(key, body);
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const { put: blobPut } = await import('@vercel/blob');
     const r = await blobPut(key, body, { access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType, cacheControlMaxAge: 31536000 });
