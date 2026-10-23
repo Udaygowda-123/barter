@@ -12,6 +12,10 @@ let refreshing: Promise<string | null> | null = null;
 let sessionUser: unknown = null; // the user returned alongside a refreshed token (saves a /users/me round-trip)
 export const consumeSessionUser = <T,>() => { const u = sessionUser as T | null; sessionUser = null; return u; };
 const listeners = new Set<(t: string | null) => void>();
+const endListeners = new Set<() => void>();
+/** Fired when the server no longer accepts our session (expired refresh, deleted/suspended account, rotated secret). */
+export const onSessionEnded = (fn: () => void) => { endListeners.add(fn); return () => { endListeners.delete(fn); }; };
+const endSession = () => { setToken(null); endListeners.forEach((l) => l()); };
 export const getToken = () => accessToken;
 export const setToken = (t: string | null) => { accessToken = t; listeners.forEach((l) => l(t)); };
 export const onTokenChange = (fn: (t: string | null) => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
@@ -52,7 +56,8 @@ export async function api<T = unknown>(path: string, opts: Opts = {}): Promise<T
   if (res.status === 401 && retry && accessToken && !path.startsWith('/auth/')) {
     const t = await refreshSession();
     if (t) return api<T>(path, { ...opts, retry: false });
-  }
+    endSession(); // refresh failed → signed out everywhere, stop polling
+  } else if (res.status === 401 && !retry && accessToken && !path.startsWith('/auth/')) endSession(); // fresh token still refused (e.g. account deleted)
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, data.code ?? 'ERROR', data.message ?? 'Something went wrong', data.details);

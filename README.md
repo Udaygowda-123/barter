@@ -17,7 +17,7 @@ public/demo        demo listing photos
 ```bash
 pnpm install
 cp .env.example .env.local   # fill MONGODB_URI + JWT_ACCESS_SECRET (the only env file)
-pnpm seed                    # optional demo data
+pnpm seed                    # optional demo data (use a dev database such as …/swapd_dev, never your live one)
 pnpm dev                     # http://localhost:3000
 ```
 Demo logins (after seeding): `maya@swapd.demo`, `arjun@swapd.demo`, `zoya@swapd.demo`, `kabir@swapd.demo` (admin: `admin@swapd.demo`) — password `swapd-demo-pass`.

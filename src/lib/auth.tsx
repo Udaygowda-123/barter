@@ -2,7 +2,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api, consumeSessionUser, refreshSession, setToken } from './api';
+import { api, consumeSessionUser, onSessionEnded, refreshSession, setToken } from './api';
+import { useToast } from './toast';
 import type { Me } from './types';
 
 interface AuthCtx {
@@ -23,7 +24,7 @@ const hint = {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Me | null>(null);
   const [status, setStatus] = useState<AuthCtx['status']>('loading');
-  const qc = useQueryClient();
+  const qc = useQueryClient(); const toast = useToast();
 
   const reload = useCallback(async () => {
     try { const me = await api<Me>('/users/me'); setUser(me); setStatus('authed'); return me; }
@@ -33,6 +34,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => { if (!hint.has()) { setStatus('anon'); return; } const t = await refreshSession(); if (!t) { hint.clear(); setStatus('anon'); return; } const me = consumeSessionUser<Me>(); if (me) { setUser(me); setStatus('authed'); } else await reload(); })();
   }, [reload]);
+
+  // If the server stops accepting our session, drop to signed-out state (this also stops background polling).
+  useEffect(() => onSessionEnded(() => {
+    setUser(null); setStatus('anon'); hint.clear(); qc.clear(); toast.info('Your session ended — please sign in again.');
+  }), [qc, toast]);
 
   const value = useMemo<AuthCtx>(() => ({
     user, status, reload,
