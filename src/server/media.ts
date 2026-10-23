@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import sharp, { Metadata } from 'sharp';
+import sharp, { Metadata, OutputInfo } from 'sharp';
 import { LocalSharpProvider } from './enhance';
 import { HttpError, bad, forbidden, notFound } from './http';
 import { Image, ImageDoc } from './models';
@@ -31,11 +31,17 @@ export async function uploadImage(userId: string, file: Buffer) {
   if (!meta.format || !ALLOWED.has(meta.format)) throw bad('UNSUPPORTED_IMAGE_TYPE', meta.format === 'heif' || !meta.format ? 'This photo format is not supported. Export it as JPEG or PNG and try again.' : 'This image type is not supported. Use JPEG, PNG, HEIC or WebP.');
   if ((await Image.countDocuments({ uploaderId: toId(userId), listingId: null })) >= 30) throw bad('TOO_MANY_PENDING', 'Attach or remove unused photos first');
 
-  const original = await sharp(file).rotate().resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true }).webp({ quality: 90 }).toBuffer({ resolveWithObject: true });
-  const [thumb, enhanced] = await Promise.all([
-    sharp(original.data).resize({ width: 480, height: 600, fit: 'cover' }).webp({ quality: 78 }).toBuffer(),
-    provider.enhance(original.data).then((r) => r.data).catch(() => null),
-  ]);
+  let original: { data: Buffer; info: OutputInfo }; let thumb: Buffer; let enhanced: Buffer | null;
+  try {
+    original = await sharp(file).rotate().resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true }).webp({ quality: 90 }).toBuffer({ resolveWithObject: true });
+    [thumb, enhanced] = await Promise.all([
+      sharp(original.data).resize({ width: 480, height: 600, fit: 'cover' }).webp({ quality: 78 }).toBuffer(),
+      provider.enhance(original.data).then((r) => r.data).catch(() => null),
+    ]);
+  } catch {
+    // e.g. HEVC-encoded HEIC, which the browser normally converts before upload
+    throw bad('UNSUPPORTED_IMAGE_TYPE', 'This photo format could not be processed. Export it as JPEG or PNG and try again.');
+  }
   const base = `images/${randomUUID()}`;
   const [originalKey, thumbKey, enhancedKey] = await Promise.all([
     storage.put(`${base}/original.webp`, original.data, 'image/webp'), storage.put(`${base}/thumb.webp`, thumb, 'image/webp'),

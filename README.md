@@ -24,7 +24,7 @@ Demo logins (after seeding): `maya@swapd.demo`, `arjun@swapd.demo`, `zoya@swapd.
 
 ## Deploy to Vercel
 1. Push to GitHub → import in Vercel (framework: Next.js, no Root Directory or custom commands needed).
-2. **Environment variables:** `MONGODB_URI`, `JWT_ACCESS_SECRET` (32+ random chars), and `BLOB_READ_WRITE_TOKEN` (Storage → Blob → create store; needed for photo uploads in production).
+2. **Environment variables:** `MONGODB_URI`, `JWT_ACCESS_SECRET` (32+ random chars), and for photo uploads either `CLOUDINARY_URL` (Cloudinary → Settings → API Keys → copy the "API environment variable" and replace the placeholders) or `BLOB_READ_WRITE_TOKEN` (Vercel Storage → Blob). Cloudinary wins if both are set.
 3. In MongoDB Atlas → Network Access, allow `0.0.0.0/0` (Vercel IPs change).
 
 ## Auth & email
