@@ -108,19 +108,15 @@ button, a, [role='button'], summary, label { touch-action: manipulation; }
 .spin-in { animation: spin-in .9s cubic-bezier(.34, 1.56, .64, 1) .5s both; }
 .underline-draw { transform-origin: left; animation: draw .7s ease-out .7s both; }
 
-/* ───────── Hero "swap orbit" (CSS 3D) ───────── */
-.orbit-scene { --rx: 0deg; --ry: 0deg; --tilt: 66deg; --r: clamp(120px, 16vw, 200px); position: relative; width: 100%; aspect-ratio: 1; max-width: 34rem; margin-inline: auto; perspective: 1100px; }
-.orbit-tilt { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(var(--rx)) rotateY(var(--ry)); transition: transform .4s cubic-bezier(.22, 1, .36, 1); }
-.orbit-ring { position: absolute; left: 50%; top: 50%; width: calc(var(--r) * 2.2); height: calc(var(--r) * 2.2); margin: calc(var(--r) * -1.1); border-radius: 999px; border: 2px dashed rgb(205 184 255 / .55); transform: rotateX(var(--tilt)); }
-.orbit-plane { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; transform: rotateX(var(--tilt)) rotateZ(0deg); animation: orbit-spin 24s linear infinite; }
-.orbit-sat { position: absolute; transform-style: preserve-3d; transform: rotateZ(var(--a)) translateX(var(--r)); }
-.orbit-face { transform-style: preserve-3d; transform: translate(-50%, -50%) rotateZ(calc(-1 * var(--a))) rotateX(calc(-1 * var(--tilt))); animation: orbit-face 24s linear infinite; }
-.orbit-core { position: absolute; left: 50%; top: 50%; display: flex; width: 5.5rem; height: 5.5rem; margin: -2.75rem; align-items: center; justify-content: center; border-radius: 999px; color: var(--color-ink);
-  background: radial-gradient(circle at 32% 28%, #ffd2c8 0%, var(--color-coral) 45%, #e8523a 100%); box-shadow: inset -10px -14px 24px rgb(0 0 0 / .18), 0 30px 60px -18px rgb(255 118 94 / .7); transform: translateZ(40px); animation: core-float 5s ease-in-out infinite; }
-@keyframes orbit-spin { to { transform: rotateX(var(--tilt)) rotateZ(360deg); } }
-@keyframes orbit-face { to { transform: translate(-50%, -50%) rotateZ(calc(-1 * var(--a) - 360deg)) rotateX(calc(-1 * var(--tilt))); } }
-@keyframes core-float { 0%, 100% { transform: translateZ(40px) translateY(0); } 50% { transform: translateZ(40px) translateY(-8px); } }
-@media (prefers-reduced-motion: reduce) { .orbit-plane, .orbit-face, .orbit-core { animation: none !important; } }
+/* ───────── Hero "swap orbit" (positions driven by swap-orbit.tsx; no CSS 3D so nothing can intersect) ───────── */
+.orbit-scene { position: relative; isolation: isolate; width: 100%; max-width: 34rem; height: 26rem; margin-inline: auto; }
+.orbit-ring, .orbit-core, .orbit-card { position: absolute; left: 50%; top: 50%; }
+.orbit-ring { z-index: 0; transform: translate(-50%, -50%); border-radius: 50%; border: 2px dashed rgb(205 184 255 / .5); }
+.orbit-core { z-index: 100; display: flex; width: 5.5rem; height: 5.5rem; transform: translate(-50%, -50%); align-items: center; justify-content: center; border-radius: 999px; color: var(--color-ink);
+  background: radial-gradient(circle at 32% 28%, #ffd2c8 0%, var(--color-coral) 45%, #e8523a 100%); box-shadow: inset -10px -14px 24px rgb(0 0 0 / .18), 0 30px 60px -18px rgb(255 118 94 / .7); }
+.orbit-card { margin: 0; width: 8rem; will-change: transform; opacity: 0; transition: opacity .5s ease-out; }
+.orbit-scene[data-ready] .orbit-card { opacity: 1; }
+.orbit-card[data-caption='false'] .orbit-caption { display: none; }
 
 /* Profile cover accent (decorative) */
 .profile-cover { background:
