@@ -2,6 +2,8 @@
 const immutable = [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }];
 const nextConfig = {
   reactStrictMode: true,
+  // Local build checks can set NEXT_DIST_DIR so they never overwrite a running dev server's .next (which breaks its CSS/JS).
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   poweredByHeader: false,
   serverExternalPackages: ['@node-rs/argon2', 'sharp', 'mongoose'],
   experimental: { optimizePackageImports: ['lucide-react', 'framer-motion', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@tanstack/react-query'] },
