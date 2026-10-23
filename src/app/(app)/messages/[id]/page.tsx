@@ -120,7 +120,7 @@ function Bubble({ m, mine, meId }: { m: Message; mine: boolean; meId?: string })
     return (
       <div className={cn('max-w-[88%] rounded-3xl border border-line bg-surface p-4 shadow-[var(--shadow-card)] md:max-w-sm', mine ? 'ml-auto' : '')}>
         <div className="flex flex-wrap items-center gap-1.5"><p className="mr-auto text-xs font-bold uppercase tracking-widest text-muted">{r.number === 1 ? 'Offer' : `Counteroffer · v${r.number}`} {r.authorId === meId ? 'from you' : `from ${m.sender?.displayName ?? 'them'}`}</p>
-          {m.offerStatus && (m.isCurrentRevision || m.offerStatus === 'ACCEPTED' ? <OfferStatusBadge status={m.offerStatus} /> : <Badge>Superseded</Badge>)}{m.yourTurn && m.isCurrentRevision && <Badge tone="coral">Your turn</Badge>}</div>
+          {m.offerStatus && (m.isCurrentRevision || m.offerStatus === 'ACCEPTED' ? <OfferStatusBadge status={m.offerStatus} /> : <Badge>Superseded</Badge>)}{m.yourTurn && m.isCurrentRevision && <Badge tone="cobalt">Your turn</Badge>}</div>
         <div className="mt-2 flex items-center gap-2 text-sm"><div className="flex-1"><p className="font-semibold">{offered.length ? offered.map((i) => i.listing.title).join(', ') : 'Cash only'}</p></div><span aria-hidden>⇄</span><div className="flex-1 text-right"><p className="font-semibold">{requested.map((i) => i.listing.title).join(', ')}</p></div></div>
         {r.cashAmount > 0 && <p className="mt-2 rounded-xl bg-mint px-3 py-1.5 text-sm font-bold text-mint-ink">+ {formatINR(r.cashAmount)} proposed{r.cashPayerId ? (r.cashPayerId === meId ? ' from you' : ' from them') : ''}</p>}
         {r.message && <p className="mt-2 text-sm italic text-muted">“{r.message}”</p>}

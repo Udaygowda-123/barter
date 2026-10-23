@@ -25,19 +25,19 @@ export function StatusBadge({ status }: { status: Listing['status'] }) {
 export function ListingCard({ listing, onDismiss, priority }: { listing: Listing; onDismiss?: (id: string) => void; priority?: boolean }) {
   const { status } = useAuth(); const router = useRouter(); const toast = useToast(); const qc = useQueryClient();
   const prefetch = () => { void qc.prefetchQuery({ queryKey: ['listing', listing.id, status === 'authed'], queryFn: () => api<Listing>(`/listings/${listing.id}`), staleTime: 30_000 }); };
-  const [fav, setFav] = useState(!!listing.favorited); const [busy, setBusy] = useState(false);
+  const [fav, setFav] = useState(!!listing.favorited); const [busy, setBusy] = useState(false); const [pop, setPop] = useState(0);
   const cover = coverOf(listing);
 
   async function toggleFav(e: React.MouseEvent) {
     e.preventDefault(); e.stopPropagation();
     if (status !== 'authed') return router.push(`/login?next=${encodeURIComponent(`/listing/${listing.id}`)}`);
-    setBusy(true); const next = !fav; setFav(next);
+    setBusy(true); const next = !fav; setFav(next); if (next) setPop(Date.now());
     try { await api(`/listings/${listing.id}/favorite`, { method: next ? 'POST' : 'DELETE' }); toast.success(next ? 'Saved' : 'Removed from saved'); }
     catch (err) { setFav(!next); toast.error(err instanceof ApiError ? err.message : 'Could not update saved items'); } finally { setBusy(false); }
   }
 
   return (
-    <article className="group relative">
+    <article className="group relative transition-transform duration-300 ease-out md:hover:-translate-y-1">
       <Link href={`/listing/${listing.id}`} onPointerEnter={prefetch} onTouchStart={prefetch} onFocus={prefetch} className="block rounded-[var(--radius-card)]" aria-label={`${listing.title}, ${formatINR(listing.estimatedValue)}`}>
         <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-card)] bg-ink/5">
           {cover ? <img src={cover.thumbUrl ?? cover.url} alt={cover.altText ?? listing.title} width={480} height={600} decoding="async" fetchPriority={priority ? 'high' : 'auto'} loading={priority ? 'eager' : 'lazy'} className={cn('size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]', listing.status !== 'ACTIVE' && 'opacity-60 saturate-50')} /> : <div className="flex size-full items-center justify-center text-muted">No photo</div>}
@@ -56,12 +56,13 @@ export function ListingCard({ listing, onDismiss, priority }: { listing: Listing
           <span className="flex min-w-0 items-center gap-1 text-muted"><MapPin className="size-3.5 shrink-0" aria-hidden /><span className="truncate">{listing.locationCity ?? 'Location not shared'}</span></span>
           <span className="hidden truncate font-medium sm:inline">{listing.owner.displayName}</span>
         </div>
+        {listing.wantedText && <p className="mt-1 line-clamp-1 px-1 text-xs text-muted"><span className="font-semibold text-ink">Wants</span> · {listing.wantedText}</p>}
         {listing.match && listing.match.reasons.length > 0 && <p className="mt-1.5 line-clamp-1 rounded-full bg-lavender px-3 py-1 text-xs font-semibold text-lavender-ink">✦ {listing.match.reasons[0]}</p>}
       </Link>
       {!listing.isOwner && (
         <div className="absolute right-2 top-2 flex flex-col gap-2 md:right-3 md:top-3">
           <button onClick={toggleFav} disabled={busy} aria-pressed={fav} aria-label={fav ? `Remove ${listing.title} from saved` : `Save ${listing.title}`} className="flex size-10 items-center justify-center rounded-full bg-paper/95 shadow-md transition-transform hover:scale-105 active:scale-95 md:size-11">
-            <Heart className={cn('size-5', fav && 'fill-coral text-coral')} aria-hidden />
+            <Heart key={pop} className={cn('size-5', fav && 'fill-coral text-coral', pop && fav && 'heart-pop')} aria-hidden />
           </button>
           {onDismiss && <button onClick={(e) => { e.preventDefault(); onDismiss(listing.id); }} aria-label={`Not interested in ${listing.title}`} className="hidden size-11 items-center justify-center rounded-full bg-paper/95 shadow-md transition-transform hover:scale-105 active:scale-95 md:flex"><X className="size-5" aria-hidden /></button>}
         </div>

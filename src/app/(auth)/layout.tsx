@@ -4,14 +4,15 @@ import { Logo } from '@/components/logo';
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-dvh md:grid-cols-[1fr_1.1fr]">
-      <div className="relative hidden overflow-hidden bg-lavender p-12 md:flex md:flex-col md:justify-between">
-        <Logo />
-        <div>
-          <p className="max-w-md text-5xl font-black leading-[1.05] tracking-tight">Your next favorite thing is already out there.</p>
-          <p className="mt-5 max-w-sm text-lavender-ink">Swap what you have for what you actually want — with clear terms, real chat, and both-sides confirmation.</p>
+      <div className="on-ink relative hidden overflow-hidden bg-night p-12 text-paper md:flex md:flex-col md:justify-between">
+        <img src="/video/hero-poster.webp" alt="" aria-hidden className="absolute inset-0 size-full object-cover opacity-60" />
+        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-night/30" />
+        <Logo className="relative" />
+        <div className="relative">
+          <p className="max-w-md text-5xl font-extrabold leading-[1.02] font-display">Your next <em className="accent font-normal text-violet">favourite</em> thing is already out there.</p>
+          <p className="mt-5 max-w-sm text-paper/80">Swap what you have for what you actually want — with clear terms, real chat, and both-sides confirmation.</p>
         </div>
-        <div aria-hidden className="absolute -bottom-24 -right-16 size-80 rounded-full bg-coral/30 blur-3xl" />
-        <p className="text-sm text-lavender-ink">Free while we grow. No payments handled by SWAPD.</p>
+        <p className="relative text-sm text-paper/70">Free to use. No payments handled by SWAPD.</p>
       </div>
       <main id="main" className="flex flex-col px-5 py-8 md:px-14 md:py-12">
         <div className="mb-8 md:hidden"><Logo /></div>

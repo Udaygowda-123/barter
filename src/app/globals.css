@@ -1,8 +1,9 @@
 @import 'tailwindcss';
 
 /* ───────── SWAPD design tokens ─────────
-   Coral is a bright accent: use ink text on coral surfaces (white on coral fails AA).
-   Use coral-ink for coral-coloured text on paper. */
+   Foundation: paper (ivory) + ink. Accents are used deliberately — see docs/DESIGN.md:
+   coral = primary action & key moments · cobalt = "needs your attention", links, focus · lilac/violet = discovery & creative
+   surfaces · mint = success/agreed · butter = pending/caution. Coral takes ink text (white on coral fails AA). */
 @theme {
   --color-paper: #faf8f5;
   --color-surface: #ffffff;
@@ -12,7 +13,13 @@
   --color-coral-hover: #ff5f44;
   --color-coral-soft: #ffe3dc;
   --color-coral-ink: #b73c26;
-  --color-lavender: #f3e9ff;
+  --color-lavender: #f3e9ff; /* soft lilac surface (kept name for compatibility) */
+  --color-lilac: #f3e9ff;
+  --color-violet: #cdb8ff;
+  --color-cobalt: #5267ff;      /* decorative / large / rings */
+  --color-cobalt-ink: #3d4fe8;  /* text, links and solid surfaces with white text (AA) */
+  --color-cobalt-soft: #e7eaff;
+  --color-night: #100e16;
   --color-lavender-ink: #5b3a99;
   --color-mint: #d8f4df;
   --color-mint-ink: #1d6a3a;
@@ -24,7 +31,8 @@
   --color-danger-soft: #fde4e1;
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument), ui-serif, Georgia, serif;
 
   --radius-card: 1.5rem;
   --radius-control: 0.875rem;
@@ -35,8 +43,23 @@
 html { background: var(--color-paper); color: var(--color-ink); -webkit-text-size-adjust: 100%; }
 body { font-family: var(--font-sans); min-height: 100dvh; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 
-:focus-visible { outline: 3px solid var(--color-ink); outline-offset: 2px; border-radius: 6px; }
-.on-ink :focus-visible { outline-color: var(--color-coral); }
+:focus-visible { outline: 3px solid var(--color-cobalt-ink); outline-offset: 2px; border-radius: 6px; }
+.on-ink :focus-visible { outline-color: var(--color-violet); }
+
+/* Typography: display face for headings; serif italic for expressive accent words (<em class="accent">). */
+h1, h2, .font-display { font-family: var(--font-display); letter-spacing: -0.025em; font-optical-sizing: auto; }
+h1 { text-wrap: balance; } h2 { text-wrap: balance; }
+.accent { font-family: var(--font-serif); font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
+
+/* Dialogs & menus: quick, interruptible motion (Radix data-state). */
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sheet-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(.96) translateY(-4px); } to { opacity: 1; transform: none; } }
+[data-state='open'].anim-overlay { animation: overlay-in .18s ease-out; }
+[data-state='open'].anim-sheet { animation: sheet-in .24s cubic-bezier(.22, 1, .36, 1); }
+[data-state='open'].anim-pop { animation: pop-in .16s ease-out; }
+@keyframes heart-pop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.heart-pop { animation: heart-pop .32s ease-out; }
 
 ::selection { background: var(--color-coral-soft); }
 
@@ -84,3 +107,23 @@ button, a, [role='button'], summary, label { touch-action: manipulation; }
 .float { animation: float 6s ease-in-out infinite; animation-delay: var(--f, 0s); }
 .spin-in { animation: spin-in .9s cubic-bezier(.34, 1.56, .64, 1) .5s both; }
 .underline-draw { transform-origin: left; animation: draw .7s ease-out .7s both; }
+
+/* ───────── Hero "swap orbit" (CSS 3D) ───────── */
+.orbit-scene { --rx: 0deg; --ry: 0deg; --tilt: 66deg; --r: clamp(120px, 16vw, 200px); position: relative; width: 100%; aspect-ratio: 1; max-width: 34rem; margin-inline: auto; perspective: 1100px; }
+.orbit-tilt { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(var(--rx)) rotateY(var(--ry)); transition: transform .4s cubic-bezier(.22, 1, .36, 1); }
+.orbit-ring { position: absolute; left: 50%; top: 50%; width: calc(var(--r) * 2.2); height: calc(var(--r) * 2.2); margin: calc(var(--r) * -1.1); border-radius: 999px; border: 2px dashed rgb(205 184 255 / .55); transform: rotateX(var(--tilt)); }
+.orbit-plane { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; transform: rotateX(var(--tilt)) rotateZ(0deg); animation: orbit-spin 24s linear infinite; }
+.orbit-sat { position: absolute; transform-style: preserve-3d; transform: rotateZ(var(--a)) translateX(var(--r)); }
+.orbit-face { transform-style: preserve-3d; transform: translate(-50%, -50%) rotateZ(calc(-1 * var(--a))) rotateX(calc(-1 * var(--tilt))); animation: orbit-face 24s linear infinite; }
+.orbit-core { position: absolute; left: 50%; top: 50%; display: flex; width: 5.5rem; height: 5.5rem; margin: -2.75rem; align-items: center; justify-content: center; border-radius: 999px; color: var(--color-ink);
+  background: radial-gradient(circle at 32% 28%, #ffd2c8 0%, var(--color-coral) 45%, #e8523a 100%); box-shadow: inset -10px -14px 24px rgb(0 0 0 / .18), 0 30px 60px -18px rgb(255 118 94 / .7); transform: translateZ(40px); animation: core-float 5s ease-in-out infinite; }
+@keyframes orbit-spin { to { transform: rotateX(var(--tilt)) rotateZ(360deg); } }
+@keyframes orbit-face { to { transform: translate(-50%, -50%) rotateZ(calc(-1 * var(--a) - 360deg)) rotateX(calc(-1 * var(--tilt))); } }
+@keyframes core-float { 0%, 100% { transform: translateZ(40px) translateY(0); } 50% { transform: translateZ(40px) translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .orbit-plane, .orbit-face, .orbit-core { animation: none !important; } }
+
+/* Profile cover accent (decorative) */
+.profile-cover { background:
+  radial-gradient(28rem 10rem at 15% 0%, var(--color-violet), transparent 70%),
+  radial-gradient(24rem 10rem at 90% 100%, rgb(255 118 94 / .55), transparent 70%),
+  var(--color-lilac); }

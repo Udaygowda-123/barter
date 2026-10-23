@@ -1,6 +1,6 @@
 'use client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCheck } from 'lucide-react';
+import { CheckCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/primitives';
@@ -38,7 +38,7 @@ export default function Notifications() {
   const readAll = useMutation({ mutationFn: () => api('/notifications/read-all', { method: 'POST' }), onSuccess: () => { qc.invalidateQueries({ queryKey: ['notifications'] }); qc.invalidateQueries({ queryKey: ['pulse'] }); } });
   return (
     <div className="mx-auto max-w-2xl"><div className="flex items-end justify-between gap-3"><div><h1 className="text-3xl font-black tracking-tight md:text-5xl">Notifications</h1><p className="mt-1 text-muted">{q.data ? `${q.data.unreadCount} unread` : ' '}</p></div>{!!q.data?.unreadCount && <Button variant="outline" size="sm" onClick={() => readAll.mutate()} loading={readAll.isPending}><CheckCheck className="size-4" aria-hidden />Mark all read</Button>}</div>
-      <div className="mt-6 space-y-2">{q.isLoading || status !== 'authed' ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-16" />) : q.isError ? <ErrorState onRetry={() => q.refetch()} /> : q.data!.items.length === 0 ? <EmptyState icon={<Bell className="size-7" aria-hidden />} title="You're all caught up" body="Offers, messages and deal updates will show up here." /> :
+      <div className="mt-6 space-y-2">{q.isLoading || status !== 'authed' ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-16" />) : q.isError ? <ErrorState onRetry={() => q.refetch()} /> : q.data!.items.length === 0 ? <EmptyState art="bell" title="You're all caught up" body="Offers, messages and deal updates will show up here." /> :
         q.data!.items.map((n) => { const d = describe(n); return (
           <Link key={n.id} href={d.href} onClick={() => !n.readAt && readOne.mutate(n.id)} className={cn('flex items-start gap-3 rounded-2xl border p-4 transition-colors hover:border-ink', n.readAt ? 'border-line bg-surface' : 'border-coral/40 bg-coral-soft/50')}>
             <span aria-hidden className={cn('mt-1.5 size-2.5 shrink-0 rounded-full', n.readAt ? 'bg-transparent' : 'bg-coral')} /><span className="min-w-0 flex-1"><span className={cn('block text-sm', !n.readAt && 'font-bold')}>{!n.readAt && <span className="sr-only">Unread: </span>}{d.text}</span><span className="text-xs text-muted">{timeAgo(n.createdAt)}</span></span>
