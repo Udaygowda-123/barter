@@ -32,6 +32,16 @@ function Marquee({ items, reverse }: { items: Photo[]; reverse?: boolean }) {
 }
 
 
+/** Playful status stickers from the original hero; kept in their own row so they never cover the cards. */
+function Stickers({ className }: { className?: string }) {
+  return (
+    <div aria-hidden className={cn('flex flex-wrap gap-3', className)}>
+      <span className="float rotate-[-3deg] rounded-full bg-mint px-4 py-1.5 text-sm font-black text-mint-ink shadow-lg" style={{ ['--f' as string]: '.3s' }}>+ ₹1,000</span>
+      <span className="float rotate-[2deg] rounded-full bg-lilac px-4 py-1.5 text-sm font-black text-lavender-ink shadow-lg" style={{ ['--f' as string]: '1s' }}>Offer accepted ✓</span>
+    </div>
+  );
+}
+
 export function Hero() {
   return (
     <>
@@ -44,19 +54,19 @@ export function Hero() {
 
         <div className="mx-auto grid min-h-[min(100svh,58rem)] max-w-7xl items-center gap-8 px-5 pb-14 pt-24 md:px-8 md:pt-28 lg:grid-cols-[1.1fr_0.9fr] lg:pb-24 lg:pt-32">
           <div className="on-ink">
-            <p className="rise inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-violet ring-1 ring-white/15 backdrop-blur"><Sparkles className="size-4" aria-hidden />Free peer-to-peer swapping</p>
+            <p className="rise inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-violet ring-1 ring-white/15 backdrop-blur"><Sparkles className="size-4" aria-hidden />Swap, don&apos;t shop</p>
             <h1 id="hero-title" className="rise mt-6 max-w-[13ch] text-[2.75rem] font-extrabold leading-[0.98] [--d:.06s] sm:text-6xl lg:text-[4.4rem] xl:text-[5rem]">
               Your next <em className="accent font-normal text-violet">favourite</em> thing is already <span className="relative inline-block whitespace-nowrap"><span className="relative z-10">out there.</span><span aria-hidden className="underline-draw absolute inset-x-0 bottom-1 -z-0 h-3 rounded-full bg-coral/80 sm:h-4" /></span>
             </h1>
-            <p className="rise mt-6 max-w-xl text-lg leading-relaxed text-paper/80 [--d:.14s] sm:text-xl">Discover things you love. Trade things you don&apos;t. Make every swap count.</p>
+            <p className="rise mt-6 max-w-xl text-lg leading-relaxed text-paper/80 [--d:.14s] sm:text-xl">Trade item for item, bundle a few together, or even things out with a negotiated cash difference. Real photos, clear terms, both-sides confirmation.</p>
             <div className="rise mt-9 flex flex-wrap gap-3 [--d:.22s]">
-              <Button asChild size="lg"><Link href="/discover">Explore the marketplace</Link></Button>
-              <Button asChild size="lg" variant="light"><Link href="/listing/new">List your first item</Link></Button>
+              <Button asChild size="lg"><Link href="/register">Start swapping</Link></Button>
+              <Button asChild size="lg" variant="light"><Link href="/discover">Browse the feed</Link></Button>
             </div>
-            <div className="rise mt-10 [--d:.26s] lg:hidden"><FlipDeck /></div>
-            <ul className="rise mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-paper/75 [--d:.3s]">{['Free to use', 'No payments handled by SWAPD', 'Originals always kept'].map((t) => <li key={t} className="flex items-center gap-1.5"><BadgeCheck className="size-4 text-mint" aria-hidden />{t}</li>)}</ul>
+            <div className="rise mt-10 [--d:.26s] lg:hidden"><FlipDeck /><Stickers className="mt-5 justify-center sm:justify-start" /></div>
+            <ul className="rise mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-paper/75 [--d:.3s]">{['Free to use', 'No payments handled', 'Originals always kept'].map((t) => <li key={t} className="flex items-center gap-1.5"><BadgeCheck className="size-4 text-mint" aria-hidden />{t}</li>)}</ul>
           </div>
-          <div className="rise hidden [--d:.2s] lg:block"><SwapOrbit /></div>
+          <div className="rise hidden [--d:.2s] lg:block"><SwapOrbit /><Stickers className="mt-6 justify-center" /></div>
         </div>
       </section>
 
