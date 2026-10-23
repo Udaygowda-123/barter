@@ -18,7 +18,7 @@ import { add, addPublic } from './router';
 import { env } from './config';
 
 const noContent = () => reply(null, 204);
-const offersQuery = z.object({ box: z.enum(['sent', 'received', 'all']).default('all'), status: z.enum(['PENDING', 'COUNTERED', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED']).optional(), cursor: z.string().optional(), limit: z.coerce.number().int().min(1).max(50).default(20) });
+const offersQuery = z.object({ box: z.enum(['sent', 'received', 'all']).default('all'), state: z.enum(['open', 'closed']).optional(), status: z.enum(['PENDING', 'COUNTERED', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED', 'CANCELLED']).optional(), cursor: z.string().optional(), limit: z.coerce.number().int().min(1).max(50).default(20) });
 const statusQuery = z.object({ status: z.enum(['OPEN', 'RESOLVED', 'DISMISSED']).default('OPEN') });
 const resolveDealSchema = z.object({ outcome: z.enum(['COMPLETED', 'CANCELLED']), note: z.string().trim().max(500).optional() });
 const AUTH_LIMIT = 20;

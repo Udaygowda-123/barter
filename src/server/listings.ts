@@ -63,6 +63,7 @@ export async function getListing(id: string, viewerId?: string) {
 
 export async function listListings(q: z.infer<typeof listingQuerySchema>, viewerId?: string) {
   const blocked = viewerId ? await blockedIds(viewerId) : [];
+  if (q.ownerId && blocked.includes(q.ownerId)) return { items: [], pageInfo: { nextCursor: null } }; // blocked people stay hidden even when filtering by owner
   const own = viewerId && q.ownerId === viewerId;
   const and: FilterQuery<ListingDoc>[] = [];
   if (q.q) { const r = new RegExp(escapeRegex(q.q), 'i'); and.push({ $or: [{ title: r }, { description: r }, { wantedText: r }] }); }

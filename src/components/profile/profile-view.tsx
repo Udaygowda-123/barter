@@ -26,7 +26,10 @@ export function UserListings({ userId, own }: { userId: string; own?: boolean })
   if (q.isLoading) return <GridSkeleton n={4} />;
   if (q.isError) return <ErrorState onRetry={() => q.refetch()} />;
   if (!q.data!.items.length) return <EmptyState title={own ? "You haven't listed anything yet" : 'Nothing listed right now'} body={own ? 'List something you no longer use — someone out there wants it.' : undefined} />;
-  return <ListingGrid>{q.data!.items.map((l) => <ListingCard key={l.id} listing={l} />)}</ListingGrid>;
+  if (!own) return <ListingGrid>{q.data!.items.map((l) => <ListingCard key={l.id} listing={l} />)}</ListingGrid>;
+  // My items: grouped so unavailable listings are clearly separate from ones people can still offer on.
+  const groups: [string, string, Listing['status']][] = [['Active', 'People can make offers on these.', 'ACTIVE'], ['In a deal', 'Reserved until the swap is completed or cancelled.', 'RESERVED'], ['Swapped', 'Completed swaps.', 'EXCHANGED'], ['Under review', 'Hidden while moderators check them.', 'UNDER_REVIEW']];
+  return <div className="space-y-10">{groups.map(([title, hint, st]) => { const items = q.data!.items.filter((l) => l.status === st); if (!items.length) return null; return <section key={st} aria-label={title}><h3 className="text-lg font-black">{title} <span className="text-sm font-semibold text-muted">· {items.length}</span></h3><p className="mb-4 text-sm text-muted">{hint}</p><ListingGrid>{items.map((l) => <ListingCard key={l.id} listing={l} />)}</ListingGrid></section>; })}</div>;
 }
 
 export function UserReviews({ userId }: { userId: string }) {

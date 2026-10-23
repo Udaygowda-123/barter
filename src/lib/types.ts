@@ -35,6 +35,7 @@ export interface Deal {
 }
 export interface Review { id: string; rating: number; body: string | null; createdAt: string; author?: UserBrief }
 export interface Message {
+  offerStatus?: OfferStatus; isCurrentRevision?: boolean; yourTurn?: boolean; dealId?: string | null;
   id: string; conversationId: string; type: 'TEXT' | 'OFFER_CARD' | 'SYSTEM'; content: string; clientId: string | null; createdAt: string;
   sender: UserBrief | null; attachments: ImageDto[];
   offerRevision: null | { id: string; number: number; offerId: string; authorId: string; cashAmount: number; currency: string; cashPayerId: string | null; message: string | null; items: { role: 'OFFERED' | 'REQUESTED'; listing: { id: string; title: string; ownerId: string; estimatedValue: number | null; thumbUrl: string | null } }[] };

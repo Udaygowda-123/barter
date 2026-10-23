@@ -9,7 +9,7 @@ import { ReportDialog } from '@/components/listing/report-dialog';
 import { OfferStatusBadge } from '@/components/offers/terms';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Avatar, Skeleton } from '@/components/ui/primitives';
+import { Avatar, Badge, Skeleton } from '@/components/ui/primitives';
 import { ErrorState } from '@/components/ui/states';
 import { api, ApiError, newIdempotencyKey } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -18,6 +18,8 @@ import { IMAGE_ACCEPT, prepareImage } from '@/lib/image';
 import { useToast } from '@/lib/toast';
 import type { ConversationSummary, ImageDto, Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+interface Pending { cid: string; content: string; attach: string[]; status: 'sending' | 'failed' }
 
 export default function Thread() {
   const { id } = useParams<{ id: string }>(); const { user } = useAuth(); const qc = useQueryClient(); const toast = useToast(); const router = useRouter();
@@ -33,7 +35,7 @@ export default function Thread() {
   } });
   const convs = useQuery({ queryKey: ['conversations'], queryFn: () => api<ConversationSummary[]>('/conversations'), refetchInterval: 15_000 });
   const conv = convs.data?.find((c) => c.id === id); const other = conv?.participants[0];
-  const [text, setText] = useState(''); const [sending, setSending] = useState(false); const [attach, setAttach] = useState<ImageDto[]>([]);
+  const [text, setText] = useState(''); const [pending, setPending] = useState<Pending[]>([]); const [attach, setAttach] = useState<ImageDto[]>([]);
   const [report, setReport] = useState(false); const [blocking, setBlocking] = useState(false);
   const bottom = useRef<HTMLDivElement>(null); const file = useRef<HTMLInputElement>(null); const lastId = msgs.data?.items.at(-1)?.id;
 
@@ -43,12 +45,21 @@ export default function Thread() {
     api(`/conversations/${id}/read`, { method: 'POST' }).then(() => { qc.invalidateQueries({ queryKey: ['conversations'] }); qc.invalidateQueries({ queryKey: ['pulse'] }); }).catch(() => undefined);
   }, [id, lastId, msgs.data, qc]);
 
-  async function send() {
-    const content = text.trim(); if (!content || sending) return; setSending(true);
+  /** Optimistic send: the bubble appears instantly; if it fails it stays visible with Retry (same clientId, so the server never duplicates it). */
+  async function deliver(p: Pending) {
+    setPending((l) => l.map((x) => (x.cid === p.cid ? { ...x, status: 'sending' } : x)));
     try {
-      await api(`/conversations/${id}/messages`, { method: 'POST', body: { content, clientId: newIdempotencyKey(), attachmentKeys: attach.map((a) => a.id) } });
-      setText(''); setAttach([]); await qc.invalidateQueries({ queryKey: ['messages', id] }); qc.invalidateQueries({ queryKey: ['conversations'] });
-    } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Message not sent. Try again.'); } finally { setSending(false); }
+      await api(`/conversations/${id}/messages`, { method: 'POST', body: { content: p.content, clientId: p.cid, attachmentKeys: p.attach } });
+      await qc.invalidateQueries({ queryKey: ['messages', id] }); setPending((l) => l.filter((x) => x.cid !== p.cid)); qc.invalidateQueries({ queryKey: ['conversations'] });
+    } catch (e) {
+      setPending((l) => l.map((x) => (x.cid === p.cid ? { ...x, status: 'failed' } : x)));
+      toast.error(e instanceof ApiError && e.status < 500 ? e.message : 'Message not sent — tap Retry.');
+    }
+  }
+  function send() {
+    const content = text.trim(); if (!content) return;
+    const p: Pending = { cid: newIdempotencyKey(), content, attach: attach.map((a) => a.id), status: 'sending' };
+    setPending((l) => [...l, p]); setText(''); setAttach([]); void deliver(p);
   }
   async function pickFile(f?: File) {
     if (!f) return; const fd = new FormData(); fd.append('file', await prepareImage(f));
@@ -76,6 +87,12 @@ export default function Thread() {
 
       <div className="flex-1 space-y-3 overflow-y-auto bg-paper px-3 py-4 md:px-6" role="log" aria-live="polite" aria-label="Messages">
         {msgs.isLoading ? [0, 1, 2].map((i) => <Skeleton key={i} className={cn('h-14 w-2/3', i % 2 && 'ml-auto')} />) : msgs.data!.items.map((m) => <Bubble key={m.id} m={m} mine={m.sender?.id === user?.id} meId={user?.id} />)}
+        {pending.filter((p) => !msgs.data?.items.some((m) => m.clientId === p.cid)).map((p) => (
+          <div key={p.cid} className="flex flex-col items-end gap-1">
+            <div className={cn('max-w-[85%] whitespace-pre-wrap break-words rounded-3xl rounded-br-lg bg-coral-soft px-4 py-2.5 text-[15px] md:max-w-md', p.status === 'sending' && 'opacity-60', p.status === 'failed' && 'ring-2 ring-danger')}>{p.content}</div>
+            {p.status === 'sending' ? <span className="px-2 text-[11px] text-muted" role="status">Sending…</span> : <span className="flex items-center gap-2 px-2 text-xs font-semibold text-danger" role="alert">Not sent <button onClick={() => deliver(p)} className="underline">Retry</button><button onClick={() => setPending((l) => l.filter((x) => x.cid !== p.cid))} className="text-muted underline">Discard</button></span>}
+          </div>
+        ))}
         <div ref={bottom} />
       </div>
 
@@ -85,7 +102,7 @@ export default function Thread() {
           <button type="button" onClick={() => file.current?.click()} aria-label="Attach an image" className="flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-ink/5"><ImagePlus className="size-5" aria-hidden /></button>
           <input ref={file} type="file" accept={IMAGE_ACCEPT} className="sr-only" aria-label="Attach image file" onChange={(e) => pickFile(e.target.files?.[0])} />
           <label className="flex-1"><span className="sr-only">Message</span><textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} rows={1} maxLength={2000} placeholder="Write a message…" className="max-h-32 min-h-11 w-full resize-none rounded-3xl border border-line bg-paper px-4 py-2.5 text-base md:text-[15px] focus-visible:border-ink" /></label>
-          <Button type="submit" size="icon" aria-label="Send message" disabled={!text.trim()} loading={sending}>{!sending && <Send className="size-5" aria-hidden />}</Button>
+          <Button type="submit" size="icon" aria-label="Send message" disabled={!text.trim()}><Send className="size-5" aria-hidden /></Button>
         </div>
         <p className="mt-1.5 px-2 text-[11px] text-muted">Chat doesn&apos;t change an offer or deal — use the offer page to accept terms.</p>
       </form>
@@ -102,11 +119,12 @@ function Bubble({ m, mine, meId }: { m: Message; mine: boolean; meId?: string })
     const r = m.offerRevision; const offered = r.items.filter((i) => i.role === 'OFFERED'); const requested = r.items.filter((i) => i.role === 'REQUESTED');
     return (
       <div className={cn('max-w-[88%] rounded-3xl border border-line bg-surface p-4 shadow-[var(--shadow-card)] md:max-w-sm', mine ? 'ml-auto' : '')}>
-        <p className="text-xs font-bold uppercase tracking-widest text-muted">{r.number === 1 ? 'Offer' : `Counteroffer · v${r.number}`} {r.authorId === meId ? 'from you' : `from ${m.sender?.displayName ?? 'them'}`}</p>
+        <div className="flex flex-wrap items-center gap-1.5"><p className="mr-auto text-xs font-bold uppercase tracking-widest text-muted">{r.number === 1 ? 'Offer' : `Counteroffer · v${r.number}`} {r.authorId === meId ? 'from you' : `from ${m.sender?.displayName ?? 'them'}`}</p>
+          {m.offerStatus && (m.isCurrentRevision || m.offerStatus === 'ACCEPTED' ? <OfferStatusBadge status={m.offerStatus} /> : <Badge>Superseded</Badge>)}{m.yourTurn && m.isCurrentRevision && <Badge tone="coral">Your turn</Badge>}</div>
         <div className="mt-2 flex items-center gap-2 text-sm"><div className="flex-1"><p className="font-semibold">{offered.length ? offered.map((i) => i.listing.title).join(', ') : 'Cash only'}</p></div><span aria-hidden>⇄</span><div className="flex-1 text-right"><p className="font-semibold">{requested.map((i) => i.listing.title).join(', ')}</p></div></div>
-        {r.cashAmount > 0 && <p className="mt-2 rounded-xl bg-mint px-3 py-1.5 text-sm font-bold text-mint-ink">+ {formatINR(r.cashAmount)} proposed</p>}
+        {r.cashAmount > 0 && <p className="mt-2 rounded-xl bg-mint px-3 py-1.5 text-sm font-bold text-mint-ink">+ {formatINR(r.cashAmount)} proposed{r.cashPayerId ? (r.cashPayerId === meId ? ' from you' : ' from them') : ''}</p>}
         {r.message && <p className="mt-2 text-sm italic text-muted">“{r.message}”</p>}
-        <Link href={`/offers/${r.offerId}`} className="mt-3 inline-block text-sm font-bold underline">View offer & respond</Link>
+        <Link href={m.offerStatus === 'ACCEPTED' && m.dealId ? `/deals/${m.dealId}` : `/offers/${r.offerId}`} className="mt-3 inline-block py-1 text-sm font-bold underline">{m.offerStatus === 'ACCEPTED' && m.dealId ? 'View deal' : m.yourTurn && m.isCurrentRevision ? 'Review & respond' : 'View offer'}</Link>
         <p className="mt-1 text-[11px] text-muted">{clockTime(m.createdAt)}</p>
       </div>
     );

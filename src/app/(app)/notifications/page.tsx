@@ -22,6 +22,7 @@ function describe(n: NotificationDto): { text: string; href: string } {
     case 'OFFER_ACCEPTED': return { text: 'Your offer was accepted — a deal was created', href: deal };
     case 'OFFER_REJECTED': return { text: p.reason ? 'An offer was closed because an item is no longer available' : 'An offer was declined', href: offer };
     case 'OFFER_WITHDRAWN': return { text: p.reason ? 'An offer was closed because an item is no longer available' : 'An offer was withdrawn', href: offer };
+    case 'OFFER_CANCELLED': return { text: 'An offer was cancelled — an item in it is no longer available', href: offer };
     case 'OFFER_EXPIRED': return { text: 'An offer expired without a response', href: offer };
     case 'DEAL_UPDATED': return { text: ({ handover_confirmed: 'Your swap partner agreed to the handover plan', completion_requested: 'Your swap partner confirmed completion — your turn', completed: 'Swap complete! Leave a review', cancelled: 'A deal was cancelled', disputed: 'A dispute was opened on your deal' } as Record<string, string>)[String(p.event)] ?? 'A deal was updated', href: deal };
     case 'REVIEW_RECEIVED': return { text: `You received a ${p.rating}★ review`, href: '/profile' };

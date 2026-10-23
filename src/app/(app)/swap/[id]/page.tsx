@@ -51,12 +51,12 @@ export default function SwapBuilder() {
       <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">{step === 'build' ? 'Build your swap' : 'Review your offer'}</h1>
       <p className="mb-8 mt-1 text-muted">with {t.owner.displayName} · step {step === 'build' ? 1 : 2} of 2</p>
       {step === 'build' ? (<>
-        <TermsEditor state={terms} onChange={setTerms} getPool={getPool} givePool={givePool} getTitle={`What you'd like from ${t.owner.displayName}`} giveTitle="What you'd offer" error={error}
+        <TermsEditor state={terms} onChange={setTerms} getPool={getPool} givePool={givePool} getTitle={`You want — from ${t.owner.displayName}`} giveTitle="You're offering" error={error}
           giveEmpty={<div className="rounded-2xl border border-dashed border-line p-5 text-sm"><p className="font-semibold">You have no active listings.</p><p className="text-muted">You can still propose a cash-only offer, or <Link href="/listing/new" className="font-semibold text-ink underline">list an item</Link> to swap.</p></div>} />
         <div className="fixed inset-x-0 bottom-[4.6rem] z-30 border-t border-line bg-paper/95 p-3 backdrop-blur md:static md:mt-8 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none"><div className="mx-auto flex max-w-3xl flex-col items-stretch gap-1 md:items-end"><Button size="lg" className="w-full md:w-auto" disabled={!valid} onClick={() => setStep('review')}>Review offer<ArrowRight className="size-5" aria-hidden /></Button>{!valid && <p className="text-center text-xs text-muted md:text-right">Pick an item you want, plus something to offer or a cash amount.</p>}</div></div>
       </>) : (<div className="space-y-6">
         <div className="rounded-[var(--radius-card)] border border-line bg-surface p-5">
-          <TermsSummary senderName="You" recipientName={t.owner.displayName} offered={offered} requested={requested} cashAmount={terms.cash} cashPayerName={terms.payer === 'ME' ? 'you' : t.owner.displayName} message={terms.message} />
+          <TermsSummary labels={{ left: "You're offering", right: 'You want' }} senderName="You" recipientName={t.owner.displayName} offered={offered} requested={requested} cashAmount={terms.cash} cashPayerName={terms.payer === 'ME' ? 'you' : t.owner.displayName} message={terms.message} />
         </div>
         <div className="space-y-2 rounded-2xl bg-butter p-4 text-sm text-butter-ink"><p className="font-semibold">Before you send</p><ul className="list-disc space-y-1 pl-5"><li>{t.owner.displayName} can accept, counter, or decline. Nothing is agreed until someone accepts the exact terms.</li><li>The offer expires in 72 hours if nobody responds.</li></ul><CashNote /></div>
         {error && <p role="alert" className="rounded-2xl bg-danger-soft px-4 py-3 text-sm font-medium text-danger">{error}</p>}

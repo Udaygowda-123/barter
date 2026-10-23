@@ -19,14 +19,14 @@ export const CASH_FLEXIBILITY = ['NONE','WILL_ADD','WILL_ACCEPT','EITHER'] as co
 export type CashFlexibility = (typeof CASH_FLEXIBILITY)[number];
 
 export type ListingStatus = 'ACTIVE'|'RESERVED'|'EXCHANGED'|'REMOVED'|'UNDER_REVIEW';
-export type OfferStatus = 'PENDING'|'COUNTERED'|'ACCEPTED'|'REJECTED'|'WITHDRAWN'|'EXPIRED';
+export type OfferStatus = 'PENDING'|'COUNTERED'|'ACCEPTED'|'REJECTED'|'WITHDRAWN'|'EXPIRED'|'CANCELLED';
 export type DealStatus = 'ACTIVE'|'COMPLETED'|'CANCELLED'|'DISPUTED';
 
 /** Explicit valid offer transitions. Anything not listed is rejected server-side. */
 export const OFFER_TRANSITIONS: Record<OfferStatus, OfferStatus[]> = {
-  PENDING: ['COUNTERED', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED'],
-  COUNTERED: ['PENDING', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED'],
-  ACCEPTED: [], REJECTED: [], WITHDRAWN: [], EXPIRED: [],
+  PENDING: ['COUNTERED', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED', 'CANCELLED'],
+  COUNTERED: ['PENDING', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED', 'CANCELLED'],
+  ACCEPTED: [], REJECTED: [], WITHDRAWN: [], EXPIRED: [], CANCELLED: [], // CANCELLED = closed by the system (item removed / taken by another deal)
 };
 export const DEAL_TRANSITIONS: Record<DealStatus, DealStatus[]> = {
   ACTIVE: ['COMPLETED', 'CANCELLED', 'DISPUTED'],

@@ -53,14 +53,15 @@ export const Offer = model('Offer', new Schema<any>({
   targetListingId: oid, senderId: { type: oid, index: true }, recipientId: { type: oid, index: true }, status: { type: String, default: 'PENDING' }, open: { type: Boolean, default: true },
   version: { type: Number, default: 1 }, latestRevisionNo: { type: Number, default: 1 }, acceptedRevisionNo: { type: Number, default: null }, expiresAt: Date,
   conversationId: { type: oid, default: null }, dealId: { type: oid, default: null }, createdAt: { type: Date, default: now }, updatedAt: { type: Date, default: now }, revisions: [revision],
-}).index({ senderId: 1, targetListingId: 1 }, { unique: true, partialFilterExpression: { open: true } }).index({ status: 1, expiresAt: 1 }));
+}).index({ senderId: 1, targetListingId: 1 }, { unique: true, partialFilterExpression: { open: true } }).index({ status: 1, expiresAt: 1 }).index({ conversationId: 1 }));
 
-export interface ConversationDoc { _id: Id; offerId: Id | null; listingId: Id | null; members: { userId: Id; lastReadAt: Date }[]; lastMessage: { senderId: Id | null; type: string; content: string; createdAt: Date } | null; createdAt: Date; updatedAt: Date }
+export interface ConversationDoc { _id: Id; key: string | null; offerId: Id | null; listingId: Id | null; members: { userId: Id; lastReadAt: Date }[]; lastMessage: { senderId: Id | null; type: string; content: string; createdAt: Date } | null; createdAt: Date; updatedAt: Date }
 export const Conversation = model('Conversation', new Schema<any>({
+  key: { type: String, default: null }, // `${listingId}:${userLow}:${userHigh}` — one negotiation thread per pair + item
   offerId: { type: oid, default: null }, listingId: { type: oid, default: null }, members: [new Schema<any>({ userId: oid, lastReadAt: { type: Date, default: now } }, { _id: false })],
   lastMessage: { type: new Schema<any>({ senderId: { type: oid, default: null }, type: String, content: String, createdAt: Date }, { _id: false }), default: null },
   createdAt: { type: Date, default: now }, updatedAt: { type: Date, default: now },
-}).index({ 'members.userId': 1, updatedAt: -1 }));
+}).index({ 'members.userId': 1, updatedAt: -1 }).index({ key: 1 }, { unique: true, partialFilterExpression: { key: { $type: 'string' } } }));
 
 export interface MessageDoc { _id: Id; conversationId: Id; senderId: Id | null; type: 'TEXT' | 'OFFER_CARD' | 'SYSTEM'; content: string; offerId: Id | null; revisionNumber: number | null; attachmentIds: Id[]; clientId: string | null; createdAt: Date }
 export const Message = model('Message', new Schema<any>({
@@ -68,12 +69,14 @@ export const Message = model('Message', new Schema<any>({
   attachmentIds: [oid], clientId: { type: String, default: null }, createdAt: { type: Date, default: now },
 }).index({ conversationId: 1, _id: 1 }).index({ conversationId: 1, senderId: 1, clientId: 1 }, { unique: true, partialFilterExpression: { clientId: { $type: 'string' } } }));
 
-export interface DealDoc { _id: Id; offerId: Id; acceptedRevisionNo: number; userAId: Id; userBId: Id; listingIds: Id[]; status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED'; handoverMethod: string | null; handoverNotes: string | null; handoverConfirmedByA: Date | null; handoverConfirmedByB: Date | null; completedByA: Date | null; completedByB: Date | null; cancelledById: Id | null; cancelReason: string | null; disputedById: Id | null; disputeReason: string | null; completedAt: Date | null; createdAt: Date; lockVersion: number }
+/** Terms exactly as accepted. Written once at acceptance and never updated, so later listing edits can't change a deal. */
+export interface DealSnapshot { revisionNumber: number; acceptedAt: Date; cashAmount: number; currency: string; cashPayerId: Id | null; message: string | null; items: { listingId: Id; role: 'OFFERED' | 'REQUESTED'; ownerId: Id; title: string; category: string; condition: string; estimatedValue: number | null; thumbRef: string | null }[] }
+export interface DealDoc { _id: Id; offerId: Id; acceptedRevisionNo: number; userAId: Id; userBId: Id; listingIds: Id[]; status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED'; handoverMethod: string | null; handoverNotes: string | null; handoverConfirmedByA: Date | null; handoverConfirmedByB: Date | null; completedByA: Date | null; completedByB: Date | null; cancelledById: Id | null; cancelReason: string | null; disputedById: Id | null; disputeReason: string | null; completedAt: Date | null; createdAt: Date; lockVersion: number; snapshot: DealSnapshot }
 export const Deal = model('Deal', new Schema<any>({
   offerId: { type: oid, unique: true }, acceptedRevisionNo: Number, userAId: { type: oid, index: true }, userBId: { type: oid, index: true }, listingIds: [oid], status: { type: String, default: 'ACTIVE' },
   handoverMethod: { type: String, default: null }, handoverNotes: { type: String, default: null }, handoverConfirmedByA: { type: Date, default: null }, handoverConfirmedByB: { type: Date, default: null },
   completedByA: { type: Date, default: null }, completedByB: { type: Date, default: null }, cancelledById: { type: oid, default: null }, cancelReason: { type: String, default: null },
-  disputedById: { type: oid, default: null }, disputeReason: { type: String, default: null }, completedAt: { type: Date, default: null }, createdAt: { type: Date, default: now }, lockVersion: { type: Number, default: 0 },
+  disputedById: { type: oid, default: null }, disputeReason: { type: String, default: null }, completedAt: { type: Date, default: null }, createdAt: { type: Date, default: now }, lockVersion: { type: Number, default: 0 }, snapshot: mixed,
 }));
 /** One row per listing locked by an active deal. The unique index is the database-level "no two active deals per item" guarantee. */
 export const ListingLock = model('ListingLock', new Schema<any>({ listingId: { type: oid, unique: true }, dealId: oid }));

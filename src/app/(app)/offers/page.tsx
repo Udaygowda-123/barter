@@ -15,12 +15,13 @@ import type { Offer, Page } from '@/lib/types';
 const TABS = [{ id: 'all', label: 'All' }, { id: 'received', label: 'Received' }, { id: 'sent', label: 'Sent' }] as const;
 
 export default function Offers() {
-  const { user, status } = useRequireAuth(); const [box, setBox] = useState<(typeof TABS)[number]['id']>('all');
-  const q = useQuery({ queryKey: ['offers', box], queryFn: () => api<Page<Offer>>(`/offers?box=${box}&limit=50`), enabled: status === 'authed', refetchOnWindowFocus: true });
+  const { user, status } = useRequireAuth(); const [box, setBox] = useState<(typeof TABS)[number]['id']>('all'); const [state, setState] = useState<'' | 'open' | 'closed'>('');
+  const q = useQuery({ queryKey: ['offers', box, state], queryFn: () => api<Page<Offer>>(`/offers?box=${box}&limit=50${state ? `&state=${state}` : ''}`), enabled: status === 'authed', refetchOnWindowFocus: true });
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="text-3xl font-black tracking-tight md:text-5xl">Offers</h1><p className="mt-1 text-muted">Everything you&apos;re negotiating, in one place.</p>
       <div role="tablist" aria-label="Offer filter" className="mt-6 flex gap-2">{TABS.map((t) => <Chip key={t.id} role="tab" aria-selected={box === t.id} active={box === t.id} onClick={() => setBox(t.id)}>{t.label}</Chip>)}</div>
+      <div role="tablist" aria-label="Offer state" className="mt-2 flex gap-2">{([['', 'Any status'], ['open', 'Needs action / open'], ['closed', 'Closed']] as const).map(([v, l]) => <Chip key={v} role="tab" aria-selected={state === v} active={state === v} className="h-9 text-xs" onClick={() => setState(v)}>{l}</Chip>)}</div>
       <div className="mt-6 space-y-3" aria-live="polite">
         {q.isLoading || status !== 'authed' ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-28" />) : q.isError ? <ErrorState onRetry={() => q.refetch()} /> : q.data!.items.length === 0 ? (
           <EmptyState icon={<Inbox className="size-7" aria-hidden />} title="No offers yet" body="Find something you love and propose a swap — your offers and the ones you receive show up here." action={<Button asChild><Link href="/discover">Discover items</Link></Button>} />
