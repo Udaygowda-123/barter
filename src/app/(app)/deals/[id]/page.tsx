@@ -17,6 +17,7 @@ import { formatINR } from '@/lib/format';
 import { useToast } from '@/lib/toast';
 import type { Deal, ListingBrief } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { BackButton } from '@/components/ui/back-button';
 
 const Items = ({ items, empty }: { items: ListingBrief[]; empty: string }) => items.length ? <ul className="space-y-2">{items.map((i) => <li key={i.id} className="flex items-center gap-3 rounded-2xl bg-paper p-2.5"><span className="size-14 shrink-0 overflow-hidden rounded-xl bg-ink/5">{i.thumbUrl && <img src={i.thumbUrl} alt="" className="size-full object-cover" />}</span><span><span className="block text-sm font-bold">{i.title}</span><span className="text-xs text-muted">~{formatINR(i.estimatedValue)}</span></span></li>)}</ul> : <p className="rounded-2xl bg-paper p-3 text-sm text-muted">{empty}</p>;
 const Step = ({ done, label }: { done: boolean; label: string }) => <li className="flex items-center gap-2 text-sm">{done ? <Check className="size-4 text-mint-ink" aria-hidden /> : <CircleDashed className="size-4 text-muted" aria-hidden />}<span className={done ? 'font-semibold' : 'text-muted'}>{label}</span></li>;
@@ -48,6 +49,7 @@ export default function DealPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <BackButton fallback="/deals" label="Deals" className="-mb-2" />
       <div><Badge tone={DEAL_TONE[d.status]}>{d.status.toLowerCase()}</Badge><h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">Swap with {d.counterpart.displayName}</h1></div>
       {d.status === 'DISPUTED' && <Card className="flex gap-3 border-danger/30 bg-danger-soft p-4 text-sm text-danger"><AlertOctagon className="size-5 shrink-0" aria-hidden /><p><b>Dispute open.</b> {d.dispute?.byMe ? 'You reported:' : 'The other person reported:'} “{d.dispute?.reason}”. A moderator will review. You can still confirm completion if you resolve it between yourselves.</p></Card>}
       {d.status === 'CANCELLED' && <Card className="p-4 text-sm text-muted">Cancelled {d.cancellation?.byMe ? 'by you' : 'by the other person'}: “{d.cancellation?.reason}”. The items are available again.</Card>}

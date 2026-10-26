@@ -14,6 +14,7 @@ import { useRequireAuth } from '@/lib/auth';
 import { timeAgo, timeLeft } from '@/lib/format';
 import { useToast } from '@/lib/toast';
 import type { Listing, Offer, Page, Revision } from '@/lib/types';
+import { BackButton } from '@/components/ui/back-button';
 
 type Action = 'accept' | 'counter' | 'reject' | 'withdraw' | null;
 
@@ -72,6 +73,7 @@ export default function OfferPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <BackButton fallback="/offers" label="Offers" className="-mb-2" />
       <div><div className="flex flex-wrap items-center gap-2"><OfferStatusBadge status={o.status} />{o.yourTurn && <Badge tone="cobalt">Your turn</Badge>}</div>
         <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">{o.targetListing.title}</h1>
         <p className="mt-1 text-muted">{o.sender.id === me ? `Your offer to ${o.recipient.displayName}` : `${o.sender.displayName} made you an offer`}{open && <span className="ml-2 inline-flex items-center gap-1 text-sm"><Clock className="size-3.5" aria-hidden />{timeLeft(o.expiresAt)}</span>}</p></div>

@@ -9,12 +9,13 @@ import { useRequireAuth } from '@/lib/auth';
 import { DEAL_TONE } from '@/lib/deal';
 import { timeAgo } from '@/lib/format';
 import type { Deal } from '@/lib/types';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function Deals() {
   const { status } = useRequireAuth();
   const q = useQuery({ queryKey: ['deals'], queryFn: () => api<Deal[]>('/deals'), enabled: status === 'authed' });
   return (
-    <div className="mx-auto max-w-3xl"><h1 className="text-3xl font-black tracking-tight md:text-5xl">Deals</h1><p className="mt-1 text-muted">Accepted swaps and where they stand.</p>
+    <div className="mx-auto max-w-3xl"><BackButton fallback="/profile" className="mb-3" /><h1 className="text-3xl font-black tracking-tight md:text-5xl">Deals</h1><p className="mt-1 text-muted">Accepted swaps and where they stand.</p>
       <div className="mt-6 space-y-3">{q.isLoading || status !== 'authed' ? [0, 1].map((i) => <Skeleton key={i} className="h-24" />) : q.isError ? <ErrorState onRetry={() => q.refetch()} /> : q.data!.length === 0 ? <EmptyState art="deal" title="No deals yet" body="When an offer is accepted, the deal appears here with handover and completion steps." action={<Button asChild><Link href="/offers">View offers</Link></Button>} /> :
         q.data!.map((d) => (
           <Link key={d.id} href={`/deals/${d.id}`} className="block rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)] transition-colors hover:border-ink">
