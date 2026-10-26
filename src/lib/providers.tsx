@@ -1,4 +1,5 @@
 'use client';
+import { NavTracker } from '@/components/ui/back-button';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { ApiError } from './api';
@@ -32,5 +33,5 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [qc] = useState(() => new QueryClient({
     defaultOptions: { queries: { staleTime: 30_000, gcTime: 10 * 60_000, refetchOnWindowFocus: false, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 2 } },
   }));
-  return <QueryClientProvider client={qc}><ToastProvider><AuthProvider><PulseEffects />{children}</AuthProvider></ToastProvider></QueryClientProvider>;
+  return <QueryClientProvider client={qc}><ToastProvider><AuthProvider><PulseEffects /><NavTracker />{children}</AuthProvider></ToastProvider></QueryClientProvider>;
 }

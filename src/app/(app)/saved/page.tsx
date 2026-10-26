@@ -7,12 +7,13 @@ import { EmptyState, ErrorState } from '@/components/ui/states';
 import { api } from '@/lib/api';
 import { useRequireAuth } from '@/lib/auth';
 import type { Listing } from '@/lib/types';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function Saved() {
   const { status } = useRequireAuth();
   const q = useQuery({ queryKey: ['favorites'], queryFn: () => api<Listing[]>('/favorites'), enabled: status === 'authed' });
   return (
-    <div><h1 className="text-3xl font-black tracking-tight md:text-5xl">Saved</h1><p className="mt-1 text-muted">Items you&apos;ve hearted.</p>
+    <div><BackButton fallback="/profile" className="mb-3" /><h1 className="text-3xl font-black tracking-tight md:text-5xl">Saved</h1><p className="mt-1 text-muted">Items you&apos;ve hearted.</p>
       <div className="mt-8">{q.isLoading || status === 'loading' ? <GridSkeleton n={4} /> : q.isError ? <ErrorState onRetry={() => q.refetch()} /> : q.data!.length === 0 ? <EmptyState art="heart" title="Nothing saved yet" body="Tap the heart on anything you like and it'll wait for you here." action={<Button asChild><Link href="/discover">Discover items</Link></Button>} /> : <ListingGrid>{q.data!.map((l) => <ListingCard key={l.id} listing={l} />)}</ListingGrid>}</div>
     </div>
   );

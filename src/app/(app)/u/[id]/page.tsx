@@ -14,6 +14,7 @@ import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
 import type { PublicProfile } from '@/lib/types';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function PublicProfilePage() {
   const { id } = useParams<{ id: string }>(); const { user, status } = useAuth(); const toast = useToast();
@@ -25,6 +26,7 @@ export default function PublicProfilePage() {
   const me = user?.id === id; const authed = status === 'authed';
   return (
     <div className="space-y-10">
+      <BackButton fallback="/discover" className="-mb-6" />
       <ProfileHeader p={q.data} actions={me ? <Button asChild variant="outline"><Link href="/profile">Edit profile</Link></Button> : authed ? (<><Button variant="outline" size="sm" onClick={() => setReport(true)}><Flag className="size-4" aria-hidden />Report</Button><Button variant="outline" size="sm" onClick={() => setBlocking(true)}><Ban className="size-4" aria-hidden />Block</Button></>) : undefined} />
       <section aria-labelledby="l"><h2 id="l" className="mb-5 text-2xl font-black">Listings</h2><UserListings userId={id} own={me} /></section>
       <section aria-labelledby="r"><h2 id="r" className="mb-5 text-2xl font-black">Reviews</h2><UserReviews userId={id} /></section>

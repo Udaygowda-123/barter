@@ -19,6 +19,7 @@ import { cardSeed } from '@/lib/seed';
 import { formatINR, timeAgo } from '@/lib/format';
 import { useToast } from '@/lib/toast';
 import type { Listing, PublicProfile } from '@/lib/types';
+import { BackButton } from '@/components/ui/back-button';
 
 const CASH_TEXT: Record<(typeof CASH_FLEXIBILITY)[number], string> = { NONE: 'Prefers a straight swap', WILL_ADD: 'Happy to add cash', WILL_ACCEPT: 'Happy to take cash on top', EITHER: 'Open to cash either way' };
 
@@ -58,6 +59,7 @@ export default function ListingClient({ id, initial }: { id: string; initial: Li
   );
   return (
     <div className="pb-24 lg:pb-0">
+      <BackButton fallback="/discover" className="mb-3" />
       <Gallery images={l.images} title={l.title} />
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_24rem] lg:gap-14">

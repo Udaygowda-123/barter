@@ -1,6 +1,6 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowLeftRight, ArrowRight, Send } from 'lucide-react';
+import { ArrowLeftRight, ArrowRight, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
@@ -12,6 +12,7 @@ import { useRequireAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
 import type { Listing, ListingBrief, Offer, Page } from '@/lib/types';
 import { formatINR } from '@/lib/format';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function SwapBuilder() {
   const { id } = useParams<{ id: string }>(); const { user, status } = useRequireAuth(); const router = useRouter(); const toast = useToast();
@@ -48,7 +49,7 @@ export default function SwapBuilder() {
 
   return (
     <div className="mx-auto max-w-3xl pb-32 md:pb-0">
-      <Button asChild variant="ghost" size="sm" className="-ml-3"><Link href={`/listing/${id}`}><ArrowLeft className="size-4" aria-hidden />Back to item</Link></Button>
+      <BackButton fallback={`/listing/${id}`} label="Back to item" />
       <h1 className="mt-2 text-4xl font-extrabold md:text-5xl">{step === 'build' ? <>Build your <em className="accent font-normal text-cobalt-ink">swap</em></> : <>Review your <em className="accent font-normal text-cobalt-ink">offer</em></>}</h1>
       <p className="mb-6 mt-1 text-muted">with {t.owner.displayName} · step {step === 'build' ? 1 : 2} of 2</p>
       {step === 'build' ? (<>
