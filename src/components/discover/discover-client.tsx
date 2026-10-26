@@ -1,5 +1,5 @@
 'use client';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { CATEGORIES, CATEGORY_LABELS, CONDITIONS, CONDITION_LABELS } from '@/shared/types';
 import { LayoutGrid, Layers, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
@@ -49,6 +49,7 @@ function Discover({ initialFeed }: { initialFeed: Page<Listing> | null }) {
       return { ...r, items: r.items.filter((l) => !l.isOwner) };
     },
     getNextPageParam: (last) => last.pageInfo.nextCursor ?? undefined,
+    placeholderData: keepPreviousData, // keep showing current results while a new filter/sort loads — no flash to skeletons
     // Server-rendered first screen for anonymous visitors on the default feed; personalised feeds load after sign-in.
     ...(initialFeed && !qs && sort === 'best' && status !== 'authed' && mode === 'grid' ? { initialData: { pages: [initialFeed], pageParams: [''] } } : {}),
   });
@@ -101,7 +102,7 @@ function Discover({ initialFeed }: { initialFeed: Page<Listing> | null }) {
       </div>
 
       <Dialog open={filtersOpen} onOpenChange={setFiltersOpen} title="Filters" description="Estimated values are set by owners and aren't appraisals.">
-        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); setParam({ condition: String(f.get('condition') ?? ''), minValue: String(f.get('minValue') ?? ''), maxValue: String(f.get('maxValue') ?? ''), city: String(f.get('city') ?? '') }); setFiltersOpen(false); }}>
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const lo = Number(f.get('minValue') || 0), hi = Number(f.get('maxValue') || 0); if (lo && hi && lo > hi) { toast.error('Min value must be less than max value'); return; } setParam({ condition: String(f.get('condition') ?? ''), minValue: String(f.get('minValue') ?? ''), maxValue: String(f.get('maxValue') ?? ''), city: String(f.get('city') ?? '') }); setFiltersOpen(false); }}>
           <Field label="Condition">{(p) => <Select {...p} name="condition" defaultValue={params.condition}><option value="">Any</option>{CONDITIONS.map((c) => <option key={c} value={c}>{CONDITION_LABELS[c]}</option>)}</Select>}</Field>
           <div className="grid grid-cols-2 gap-3"><Field label="Min value (₹)">{(p) => <Input {...p} name="minValue" type="number" min={0} inputMode="numeric" defaultValue={params.minValue} />}</Field><Field label="Max value (₹)">{(p) => <Input {...p} name="maxValue" type="number" min={0} inputMode="numeric" defaultValue={params.maxValue} />}</Field></div>
           <Field label="City">{(p) => <Input {...p} name="city" defaultValue={params.city} placeholder="e.g. Pune" />}</Field>

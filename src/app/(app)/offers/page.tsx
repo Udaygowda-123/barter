@@ -1,5 +1,5 @@
 'use client';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ArrowLeftRight } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -16,7 +16,7 @@ const TABS = [{ id: 'all', label: 'All' }, { id: 'received', label: 'Received' }
 
 export default function Offers() {
   const { user, status } = useRequireAuth(); const [box, setBox] = useState<(typeof TABS)[number]['id']>('all'); const [state, setState] = useState<'' | 'open' | 'closed'>('');
-  const q = useQuery({ queryKey: ['offers', box, state], queryFn: () => api<Page<Offer>>(`/offers?box=${box}&limit=50${state ? `&state=${state}` : ''}`), enabled: status === 'authed', refetchOnWindowFocus: true });
+  const q = useQuery({ queryKey: ['offers', box, state], queryFn: () => api<Page<Offer>>(`/offers?box=${box}&limit=50${state ? `&state=${state}` : ''}`), enabled: status === 'authed', refetchOnWindowFocus: true, placeholderData: keepPreviousData });
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="text-4xl font-extrabold md:text-5xl">Your <em className="accent font-normal text-cobalt-ink">offers</em></h1><p className="mt-1 text-muted">Everything you&apos;re negotiating, in one place.</p>
