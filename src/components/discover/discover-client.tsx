@@ -63,31 +63,37 @@ function Discover({ initialFeed }: { initialFeed: Page<Listing> | null }) {
     qc.invalidateQueries({ queryKey: ['discover'] });
   }
 
+  /** Sort + view toggles: labelled on desktop; one compact row with icon-only Grid/Swipe on phones (like the app). */
+  const toggles = (compact: boolean) => (
+    <div className={compact ? 'flex items-center justify-between gap-2' : 'flex flex-wrap gap-2'}>
+      <div className="flex gap-1 rounded-full bg-ink/5 p-1" role="group" aria-label="Sort">
+        <button onClick={() => setParam({ sort: '' })} aria-pressed={sort === 'best'} className={`rounded-full px-4 text-sm font-semibold ${compact ? 'h-9' : 'h-10'} ${sort === 'best' ? 'bg-surface shadow' : ''}`}>Best match</button>
+        <button onClick={() => setParam({ sort: 'new' })} aria-pressed={sort === 'new'} className={`rounded-full px-4 text-sm font-semibold ${compact ? 'h-9' : 'h-10'} ${sort === 'new' ? 'bg-surface shadow' : ''}`}>Newest</button>
+      </div>
+      <div className="flex gap-1 rounded-full bg-ink/5 p-1" role="group" aria-label="View mode">
+        <button onClick={() => setParam({ view: '' })} aria-pressed={mode === 'grid'} aria-label="Grid view" className={`flex items-center justify-center gap-2 rounded-full text-sm font-semibold ${compact ? 'size-9' : 'h-10 px-4'} ${mode === 'grid' ? 'bg-surface shadow' : ''}`}><LayoutGrid className="size-4" aria-hidden />{!compact && 'Grid'}</button>
+        <button onClick={() => setParam({ view: 'swipe' })} aria-pressed={mode === 'swipe'} aria-label="Swipe view" className={`flex items-center justify-center gap-2 rounded-full text-sm font-semibold ${compact ? 'size-9' : 'h-10 px-4'} ${mode === 'swipe' ? 'bg-surface shadow' : ''}`}><Layers className="size-4" aria-hidden />{!compact && 'Swipe'}</button>
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div><p className="text-sm font-bold uppercase tracking-[0.18em] text-coral-ink">Discover</p><h1 className="mt-1 text-4xl font-extrabold leading-[1.02] md:text-6xl">Find your next <em className="accent font-normal text-cobalt-ink">favourite</em></h1><p className="mt-2 text-muted">{status === 'authed' ? 'Picked for what you want and what you have.' : 'Browse what people are swapping. Sign in for a feed tuned to you.'}</p></div>
-        <div className="flex flex-wrap gap-2">
-        <div className="flex gap-1 rounded-full bg-ink/5 p-1" role="group" aria-label="Sort">
-          <button onClick={() => setParam({ sort: '' })} aria-pressed={sort === 'best'} className={`h-10 rounded-full px-4 text-sm font-semibold ${sort === 'best' ? 'bg-surface shadow' : ''}`}>Best match</button>
-          <button onClick={() => setParam({ sort: 'new' })} aria-pressed={sort === 'new'} className={`h-10 rounded-full px-4 text-sm font-semibold ${sort === 'new' ? 'bg-surface shadow' : ''}`}>Newest</button>
-        </div>
-        <div className="flex gap-1 rounded-full bg-ink/5 p-1" role="group" aria-label="View mode">
-          <button onClick={() => setParam({ view: '' })} aria-pressed={mode === 'grid'} className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold ${mode === 'grid' ? 'bg-surface shadow' : ''}`}><LayoutGrid className="size-4" aria-hidden />Grid</button>
-          <button onClick={() => setParam({ view: 'swipe' })} aria-pressed={mode === 'swipe'} className={`flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold ${mode === 'swipe' ? 'bg-surface shadow' : ''}`}><Layers className="size-4" aria-hidden />Swipe</button>
-        </div>
-        </div>
+        <div className="hidden md:block">{toggles(false)}</div>
       </div>
 
-      <div className="mt-6 flex flex-col gap-4">
+      <div className="mt-5 flex flex-col gap-3 md:mt-6 md:gap-4">
         <div className="flex gap-3">
           <div className="relative flex-1"><Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted" aria-hidden /><Input type="search" aria-label="Search items" placeholder="Search sneakers, cameras, vinyl…" value={search} onChange={(e) => setSearch(e.target.value)} className="h-13 rounded-full pl-12" /></div>
-          <Button variant="outline" onClick={() => setFiltersOpen(true)} className="h-[3.25rem]"><SlidersHorizontal className="size-4" aria-hidden />Filters{activeFilters > 0 && <span className="rounded-full bg-coral px-2 text-xs font-bold text-ink">{activeFilters}</span>}</Button>
+          <Button variant="outline" onClick={() => setFiltersOpen(true)} aria-label={`Filters${activeFilters ? `, ${activeFilters} active` : ''}`} className="relative h-[3.25rem] w-[3.25rem] shrink-0 px-0 sm:w-auto sm:px-5"><SlidersHorizontal className="size-4" aria-hidden /><span className="hidden sm:inline">Filters</span>{activeFilters > 0 && <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-coral px-1.5 text-xs font-bold text-ink ring-2 ring-paper sm:static sm:ring-0">{activeFilters}</span>}</Button>
         </div>
         <div role="group" aria-label="Categories" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
           <Chip active={!params.category} onClick={() => setParam({ category: '' })}>All</Chip>
           {CATEGORIES.map((c) => { const I = CATEGORY_ICON[c]; return <Chip key={c} active={params.category === c} onClick={() => setParam({ category: c })} className="inline-flex items-center gap-1.5"><I className="size-4" aria-hidden />{CATEGORY_LABELS[c]}</Chip>; })}
         </div>
+        <div className="md:hidden">{toggles(true)}</div>
       </div>
 
       <div className="mt-8" aria-live="polite" aria-busy={feed.isFetching}>

@@ -49,7 +49,7 @@ body { font-family: var(--font-sans); min-height: 100dvh; line-height: 1.5; -web
 /* Typography: display face for headings; serif italic for expressive accent words (<em class="accent">). */
 h1, h2, .font-display { font-family: var(--font-display); letter-spacing: -0.025em; font-optical-sizing: auto; }
 h1 { text-wrap: balance; } h2 { text-wrap: balance; }
-.accent { font-family: var(--font-serif); font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
+.accent { font-family: var(--font-serif); font-style: italic; font-weight: 400; letter-spacing: -0.01em; font-size: 1.06em; } /* serif reads smaller than the display face; nudge it up (matches the app) */
 
 /* Dialogs & menus: quick, interruptible motion (Radix data-state). */
 @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
