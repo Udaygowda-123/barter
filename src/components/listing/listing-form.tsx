@@ -5,14 +5,14 @@ import { createListingSchema } from '@/shared/validation';
 import { useQueryClient } from '@tanstack/react-query';
 import { Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Field, Input, Select, Textarea } from '@/components/ui/form';
 import { Chip } from '@/components/ui/primitives';
-import { api, ApiError } from '@/lib/api';
+import { api, API_URL, ApiError, getToken } from '@/lib/api';
 import { formatINR } from '@/lib/format';
 import { useToast } from '@/lib/toast';
 import type { ImageDto, Listing } from '@/lib/types';
@@ -28,6 +28,24 @@ export function ListingForm({ listing }: { listing?: Listing }) {
   const [images, setImages] = useState<ImageDto[]>(listing?.images ?? []); const [coverId, setCoverId] = useState<string | null>(listing?.images.find((i) => i.isCover)?.id ?? null);
   const [imgError, setImgError] = useState<string | null>(null); const [preview, setPreview] = useState<Values | null>(null); const [busy, setBusy] = useState(false);
   const onImages = useCallback((i: ImageDto[], c: string | null) => { setImages(i); setCoverId(c); setImgError(null); }, []);
+  // Leaving the form without saving: delete photos uploaded during it so they don't pile up (the API caps unattached photos per user).
+  const published = useRef(false); const latest = useRef(images); const initialIds = useRef(new Set((listing?.images ?? []).map((i) => i.id)));
+  useEffect(() => { latest.current = images; }, [images]);
+  useEffect(() => {
+    const discard = (onUnload: boolean) => {
+      if (published.current) return;
+      for (const i of latest.current) {
+        if (initialIds.current.has(i.id)) continue;
+        // keepalive lets the request finish even though the page is being unloaded (tab closed, full navigation)
+        if (onUnload) { const t = getToken(); void fetch(`${API_URL}/media/images/${i.id}`, { method: 'DELETE', keepalive: true, credentials: 'include', headers: t ? { Authorization: `Bearer ${t}` } : {} }).catch(() => undefined); }
+        else api(`/media/images/${i.id}`, { method: 'DELETE' }).catch(() => undefined);
+      }
+      latest.current = []; // don't send twice
+    };
+    const onPageHide = () => discard(true);
+    window.addEventListener('pagehide', onPageHide);
+    return () => { window.removeEventListener('pagehide', onPageHide); discard(false); };
+  }, []);
 
   const { register, control, handleSubmit, setError, formState: { errors } } = useForm<Values>({
     resolver: zodResolver(formSchema),
@@ -41,7 +59,7 @@ export function ListingForm({ listing }: { listing?: Listing }) {
     const body = { ...preview, estimatedValue: preview.estimatedValue || null, wantedText: preview.wantedText || null, imageIds: images.map((i) => i.id), coverImageId: coverId ?? undefined };
     try {
       const saved = await api<Listing>(listing ? `/listings/${listing.id}` : '/listings', { method: listing ? 'PATCH' : 'POST', body });
-      toast.success(listing ? 'Listing updated' : 'Your item is live 🎉'); qc.invalidateQueries(); router.replace(`/listing/${saved.id}`);
+      published.current = true; toast.success(listing ? 'Listing updated' : 'Your item is live 🎉'); qc.invalidateQueries(); router.replace(`/listing/${saved.id}`);
     } catch (e) {
       setPreview(null);
       if (e instanceof ApiError && e.code === 'VALIDATION_FAILED') Object.entries(e.fieldErrors()).forEach(([k, m]) => (k === 'imageIds' ? setImgError(m) : setError(k as keyof Values, { message: m })));
